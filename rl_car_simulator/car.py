@@ -32,6 +32,7 @@ class Car:
         self.goal_id = -1
 
         self.sensed_state = None
+        self.lidar_state = None
 
         self.collided = False
         self.reached_goal = True

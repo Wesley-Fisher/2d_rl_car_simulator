@@ -69,8 +69,39 @@ class PhysicsEngine:
                                dist, # Distance to goal
                                head, # Heading to goal])
                                 ])
-        lidar_state = np.zeros((len(self.settings.car_properties.lidar_angles)))
+
+        N = len(self.settings.car_properties.lidar_angles)
+        lidar_state = np.zeros((N))
+        for i in range(0, N):
+            ang = self.settings.car_properties.lidar_angles[i]
+            dist = self.calc_lidar_distance(car, ang)
+            lidar_state[i] = dist
+        car.lidar_state = lidar_state
         return np.concatenate([base_state, lidar_state], axis=0)
+
+    def calc_lidar_distance(self, car, ang):
+        c = np.array([[car.state.x],[car.state.y]]).reshape(-1)
+        beam = np.array([[math.cos(ang + car.state.h)],[math.sin(ang + car.state.h)]])
+        
+        dist_min = None
+        for wall in self.world.walls:
+            v1 = wall.x1 - c
+            v2 = wall.x2 - c
+            V = np.concatenate([v1.reshape((2,1)),v2.reshape((2,1))], axis=-1)
+            coeff = np.dot(np.linalg.pinv(V), beam)
+            a = coeff[0][0]
+            b = coeff[1][0]
+            if a >= 0.0 and a <= 1.0 and  b >= 0.0 and b <= 1.0 and (a+b) > 0.0:
+                alpha = 1.0 / (b + a)
+                pt = np.dot(V, coeff) * alpha
+                diff = pt - c
+                dist = np.linalg.norm(diff, 2)
+
+                if dist_min is None or dist < dist_min:
+                    dist_min = dist
+
+        print(dist_min)
+        return dist_min
     
     def handle_collisions(self):
         for car in self.world.all_cars:

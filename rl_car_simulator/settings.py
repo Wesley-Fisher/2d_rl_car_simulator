@@ -32,7 +32,7 @@ class CarProperties:
         self.width = 1.8
         self.mass = 1.0
         self.fric = 1.0
-        self.lidar_angles = [0.0, 0.0, 0.0]
+        self.lidar_angles = [0.0, 0.5, -0.5]
 
 class Keyboard:
     def __init__(self):
