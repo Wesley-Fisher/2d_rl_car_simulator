@@ -54,7 +54,7 @@ class Graphics:
                     ang = ang + car.state.h
                     x = curr[0] + int(dist * math.cos(ang) * self.settings.graphics.pixels_per_m)
                     y = curr[1] + int(dist * math.sin(ang) * self.settings.graphics.pixels_per_m)
-                    cv2.line(base_frame, curr, (x,y), color=(0,0,0), thickness=1)
+                    cv2.line(base_frame, curr, (x,y), color=(128,120,120), thickness=1)
                     cv2.circle(base_frame, (x,y), color=(255,0,255), radius=5, thickness=-1)
 
         return base_frame

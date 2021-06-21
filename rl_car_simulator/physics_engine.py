@@ -83,7 +83,7 @@ class PhysicsEngine:
         c = np.array([[car.state.x],[car.state.y]]).reshape(-1)
         beam = np.array([[math.cos(ang + car.state.h)],[math.sin(ang + car.state.h)]])
         
-        dist_min = None
+        dist_min = -1
         for wall in self.world.walls:
             v1 = wall.x1 - c
             v2 = wall.x2 - c
@@ -94,13 +94,12 @@ class PhysicsEngine:
             if a >= 0.0 and a <= 1.0 and  b >= 0.0 and b <= 1.0 and (a+b) > 0.0:
                 alpha = 1.0 / (b + a)
                 pt = np.dot(V, coeff) * alpha
-                diff = pt - c
+                diff = pt
                 dist = np.linalg.norm(diff, 2)
 
-                if dist_min is None or dist < dist_min:
+                if dist_min == -1 or dist < dist_min:
                     dist_min = dist
 
-        print(dist_min)
         return dist_min
     
     def handle_collisions(self):
