@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from os import stat
 import time
 import threading
 
@@ -115,4 +116,5 @@ class GameEngine:
             stats = self.network.train_epoch()
             print("Training Stats:")
             print("Num Samples: %d" % stats.num_samples)
+            print("Removed: %d" % stats.num_removed)
             time.sleep(5.0)

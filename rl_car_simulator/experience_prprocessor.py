@@ -32,7 +32,7 @@ class ExperiencePreprocessor:
             td = TDExperience()
             td.s0 = ex.s0.reshape((1,8))
             td.a0 = np.array([[ex.a0.force],[ex.a0.steer]]).reshape(-1)
-            td.r1 = G
+            td.r1 = ex.r1
             td.s1 = ex.s1.reshape((1,8))
             td.step_in_ep = N - i
 

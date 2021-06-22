@@ -23,6 +23,10 @@ class PhysicsEngine:
         #print(car.controls.force)
         dt = self.settings.physics.physics_timestep
         v = math.sqrt(car.state.vx*car.state.vx + car.state.vy*car.state.vy)
+        ang = math.atan2(car.state.vy, car.state.vx)
+        ang = ang - car.state.h
+        v = v * math.cos(ang)
+
         v = v + (car.controls.force - v*self.settings.car_properties.fric) *  dt / self.settings.car_properties.mass
 
         car.state.dh = v * car.controls.steer

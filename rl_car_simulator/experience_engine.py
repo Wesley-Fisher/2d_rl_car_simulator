@@ -16,11 +16,25 @@ class ExperienceEngine:
                 car.step_experience.set_r1(r)
 
     def calculate_reward(self, car):
-        r = -1.0
+        r = -0.01
         if car.collided:
-            r -= 75.0
+            r -= 1.0
         if car.reached_goal:
-            r += 75.0
+            r += 1.0
+        else:
+            if car.step_experience is not None and \
+               car.step_experience.s0 is not None and \
+               car.step_experience.s1 is not None:
+                dx0 = car.step_experience.s0[0] - car.goal[0]
+                dy0 = car.step_experience.s0[1] - car.goal[1]
+                dist_0 = dx0*dx0 + dy0*dy0
+
+                dx1 = car.step_experience.s1[0] - car.goal[0]
+                dy1 = car.step_experience.s1[1] - car.goal[1]
+                dist_1 = dx1*dx1 + dy1*dy1
+
+                r = r + (dist_0 - dist_1) / 100.0
+
         return r
 
     def sample_end_states(self):
@@ -51,5 +65,10 @@ class ExperienceEngine:
                 car.episode_steps = []
                 print("Reached Goal")
             elif car.collided:
+                self.preprocessor.new_experience(car.episode_steps)
+                car.episode_steps = []
+
+            l = self.settings.learning.max_episode_length
+            if l > 0 and len(car.episode_steps) > l:
                 self.preprocessor.new_experience(car.episode_steps)
                 car.episode_steps = []

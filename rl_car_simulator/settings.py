@@ -19,12 +19,12 @@ class WorldSettings:
 class GraphicsSettings:
     def __init__(self):
         self.pixels_per_m = 20
-        self.show_ms = 50
+        self.show_ms = 100
 
 class InitialCarSettings:
     def __init__(self):
-        self.keyboard_cars = 1
-        self.network_cars = 2
+        self.keyboard_cars = 0
+        self.network_cars = 5
 
 class CarProperties:
     def __init__(self):
@@ -51,7 +51,8 @@ class Preprocessing:
 class Learning:
     def __init__(self):
         self.gamma = 0.9
-        self.alpha = 0.0001
+        self.alpha = 0.1
+        self.max_episode_length = 50
 
 class Walls:
     def __init__(self):
