@@ -24,7 +24,7 @@ class GraphicsSettings:
 class InitialCarSettings:
     def __init__(self):
         self.keyboard_cars = 0
-        self.network_cars = 5
+        self.network_cars = 1
 
 class CarProperties:
     def __init__(self):

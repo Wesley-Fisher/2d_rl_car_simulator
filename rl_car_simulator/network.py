@@ -13,6 +13,13 @@ class TrainingStats:
         self.num_samples = 0
         self.num_removed = 0
 
+
+class SampleTrainingResults:
+    def __init__(self):
+        self.v0 = []
+        self.v1 = []
+        self.a = []
+
 class Network:
     def __init__(self, settings, N):
         self.settings = settings
@@ -49,14 +56,79 @@ class Network:
     
     def add_experience(self, exp):
         self.new_training_experiences = self.new_training_experiences + exp
+
+    def calculate_gradients(self, state):
+        with tf.GradientTape() as tape:
+            v = self.model(state)[0][2]
+        trainable = self.model.trainable_variables
+        gradient_critic = tape.gradient(v, trainable)
+
+        with tf.GradientTape() as tape:
+            a = self.model(state)[0][0:2]
+        trainable = self.model.trainable_variables
+        gradient_actor = tape.gradient(a, trainable)
+        
+        return v, gradient_critic, a, gradient_actor
+
+    def update_weights(self, step_size, gradients):
+        weights = self.model.get_weights()
+        for i in range(0, len(gradients)):
+            dw = step_size * gradients[i]
+            weights[i] = weights[i] + dw
+        self.model.set_weights(weights)
+
+    def train_sample(self, ex):
+        results = SampleTrainingResults()
+        s0 = ex.s0
+        s1 = ex.s1
+        gamma = self.settings.learning.gamma
+        alpha = self.settings.learning.alpha
+
+        I = 1.0 #math.pow(gamma, ex.step_in_ep)
+
+        v0, gradient_critic, a0, gradient_actor = self.calculate_gradients(s0)
+        v1 = self.model(s1)[0][2]
+
+        results.v0.append(v0)
+        results.v1.append(v0)
+        results.a.append(a0)
+
+
+        d = ex.r1 + gamma * v1 - v0
+        step = d * alpha * I
+        self.update_weights(float(step), gradient_critic)
+
+
+        prob = 1.0 / 2.0 * math.pi * math.exp(-0.5 * np.dot((ex.a0 - a0), (ex.a0 - a0) ))
+
+        actor_step = prob * d * alpha * I * 0.0
+        print(actor_step)
+        self.update_weights(float(actor_step), gradient_actor)
+
+
+        v0 = self.model(s0)[0][2]
+        v1 = self.model(s1)[0][2]
+        a = self.model(s0)[0][0:1]
+
+        results.v0.append(v0)
+        results.v1.append(v0)
+        results.a.append(a)
+    
+        return results
+
+    def no_network_change(self, results, lim):
+        da = np.linalg.norm(results.a[0] - results.a[1], 2)
+        dv = results.v0[1] - results.v0[0]
+
+        if (math.fabs(dv) + math.fabs(da)) < lim:
+            return True
+
+        return False
     
     def train_epoch(self):
         new_exp = self.new_training_experiences
         self.new_training_experiences = []
         self.training_experience = self.training_experience + new_exp
-
-        gamma = self.settings.learning.gamma
-        alpha = self.settings.learning.alpha
 
         stat = TrainingStats()
         stat.num_samples = len(self.training_experience)
@@ -64,68 +136,24 @@ class Network:
         idx = -1
         for ex in self.training_experience:
             idx = idx + 1
-            s0 = ex.s0
-            s1 = ex.s1
+            results = self.train_sample(ex)
 
-            I = 1.0 #math.pow(gamma, ex.step_in_ep)
+            for i in [0,1]:
+                if tf.math.is_nan(results.v0[i]):
+                    exit()
+                if tf.math.is_nan(results.v1[i]):
+                    exit()
+                if tf.math.is_nan(results.a[i][0]) or tf.math.is_nan(results.a[i][1]):
+                    exit()
 
-            v0 = 0.0
+            if self.no_network_change(results, self.settings.learning.alpha):
+                remove_indices.append(i)
 
-            with tf.GradientTape() as tape:
-                v0 = self.model(s0)[0][2]
-            trainable = self.model.trainable_variables
-            gradient_critic = tape.gradient(v0, trainable)
-
-            v1 = self.model(s1)[0][2]
-            d = ex.r1 + gamma * v1 - v0
-            
-            step = d * alpha * I
-
-            weights = self.model.get_weights()
-            for i in range(0, len(gradient_critic)):
-                dw_critic = step * gradient_critic[i]
-                weights[i] = weights[i] + dw_critic
-            self.model.set_weights(weights)
-
-            dv = v0 -self.model(s0)[0][2]
-
-            
-            print(f"v0={float(v0)}, v1={float(v1)}")
-            print(f"d={d}, step={float(step)}")
-
-
-            a0 = 0.0
-            with tf.GradientTape() as tape:
-                a0 = self.model(s0)[0][0:1]
-                
-            trainable = self.model.trainable_variables
-            gradient_actor = tape.gradient(a0, trainable)
-
-            prob = 1.0 / 2.0 * math.pi * math.exp(-0.5 * np.dot((ex.a0 - a0), (ex.a0 - a0) ))
-            
-            weights = self.model.get_weights()
-            for i in range(0, len(gradient_actor)):
-                act_grad = prob * a0 * gradient_actor[i]
-                dw_actor = d * alpha * I * act_grad
-                weights[i] = weights[i] + dw_actor
-            self.model.set_weights(weights)
-
-            a1 = self.model(s0)[0][0:1]
-            da = np.linalg.norm(a1, 2)
-            print(f"dv={dv}, da={da}")
-
-            if (math.fabs(dv) + math.fabs(da)) / alpha < 1:
-                remove_indices.append(idx)
-
-            if tf.math.is_nan(v0) or tf.math.is_nan(v1):
-                exit()
-            
-            #self.model.set_weights(self.model.get_weights() + dw_critic)
-        
         # Remove elements with no impact on learning
         remove_indices.reverse()
         for ri in remove_indices:
-            self.training_experience.pop(ri)
+            if ri < len(self.training_experience):
+                self.training_experience.pop(ri)
         stat.num_removed = len(remove_indices)
         
         return stat
