@@ -24,7 +24,7 @@ class TestNetworkIntegration(unittest.TestCase):
         net = Network(settings, len(null_state))
         self.assertTrue(True)
 
-    def test_collision_learning(self):
+    def generate_collision_processed_experience(self):
         settings = Settings()
         settings.physics.physics_timestep = 0.05
         settings.physics.control_timestep = 0.05
@@ -92,6 +92,10 @@ class TestNetworkIntegration(unittest.TestCase):
         self.assertGreater(len(experience_raw), 2)
 
         experience = preprocessor.preprocess_episode(experience_raw)
+        return experience, net
+
+    def test_collision_learning(self):
+        experience, net = self.generate_collision_processed_experience()
         
         ex0 = experience[0]
         exM = experience[int(len(experience)/2)]
@@ -118,8 +122,7 @@ class TestNetworkIntegration(unittest.TestCase):
             vM_last = vM
             vF_last = vF
 
-
-    def test_goal_learning(self):
+    def generate_goal_processed_experience(self):
         settings = Settings()
         settings.physics.physics_timestep = 0.05
         settings.physics.control_timestep = 0.05
@@ -187,6 +190,10 @@ class TestNetworkIntegration(unittest.TestCase):
         self.assertGreater(len(experience_raw), 2)
 
         experience = preprocessor.preprocess_episode(experience_raw)
+        return experience, net
+
+    def test_goal_learning(self):
+        experience, net = self.generate_goal_processed_experience()
         
         ex0 = experience[0]
         exM = experience[int(len(experience)/2)]
