@@ -24,12 +24,7 @@ class TestNetworkIntegration(unittest.TestCase):
         net = Network(settings, len(null_state))
         self.assertTrue(True)
 
-    def generate_collision_processed_experience(self):
-        settings = Settings()
-        settings.physics.physics_timestep = 0.05
-        settings.physics.control_timestep = 0.05
-        settings.learning.alpha = 1e-4
-
+    def generate_collision_processed_experience(self, settings):
         world = WorldCreation(settings).get()
         world.walls.append(Wall(((25,0),(25,20))))
         physics = PhysicsEngine(settings, world)
@@ -95,7 +90,11 @@ class TestNetworkIntegration(unittest.TestCase):
         return experience, net
 
     def test_collision_learning(self):
-        experience, net = self.generate_collision_processed_experience()
+        settings = Settings()
+        settings.physics.physics_timestep = 0.05
+        settings.physics.control_timestep = 0.05
+        settings.learning.alpha = 1e-4
+        experience, net = self.generate_collision_processed_experience(settings)
         
         ex0 = experience[0]
         exM = experience[int(len(experience)/2)]
@@ -122,12 +121,7 @@ class TestNetworkIntegration(unittest.TestCase):
             vM_last = vM
             vF_last = vF
 
-    def generate_goal_processed_experience(self):
-        settings = Settings()
-        settings.physics.physics_timestep = 0.05
-        settings.physics.control_timestep = 0.05
-        settings.learning.alpha = 1e-4
-
+    def generate_goal_processed_experience(self, settings):
         world = WorldCreation(settings).get()
         physics = PhysicsEngine(settings, world)
         cs = CarState()
@@ -193,7 +187,11 @@ class TestNetworkIntegration(unittest.TestCase):
         return experience, net
 
     def test_goal_learning(self):
-        experience, net = self.generate_goal_processed_experience()
+        settings = Settings()
+        settings.physics.physics_timestep = 0.05
+        settings.physics.control_timestep = 0.05
+        settings.learning.alpha = 1e-4
+        experience, net = self.generate_goal_processed_experience(settings)
         
         ex0 = experience[0]
         exM = experience[int(len(experience)/2)]
@@ -221,8 +219,12 @@ class TestNetworkIntegration(unittest.TestCase):
             vF_last = vF
 
     def test_split_experience_learning(self):
-        expGoal, net = self.generate_goal_processed_experience()
-        expColl, _ = self.generate_collision_processed_experience()
+        settings = Settings()
+        settings.physics.physics_timestep = 0.05
+        settings.physics.control_timestep = 0.05
+        settings.learning.alpha = 1e-4
+        expGoal, net = self.generate_goal_processed_experience(settings)
+        expColl, _ = self.generate_collision_processed_experience(settings)
         
         exG0 = expGoal[0]
         exGF = expGoal[-1]
@@ -234,28 +236,25 @@ class TestNetworkIntegration(unittest.TestCase):
         vC0_last = float(net.model(exC0.s0)[0][2])
         vCF_last = float(net.model(exCF.s0)[0][2])
 
-        for i in range(0, 5):
+        for i in range(0, 10):
 
             for ex in expGoal + expColl:
                 net.train_sample(ex)
-            
-            vG0 = float(net.model(exG0.s0)[0][2])
-            vGF = float(net.model(exGF.s0)[0][2])
-            vC0 = float(net.model(exC0.s0)[0][2])
-            vCF = float(net.model(exCF.s0)[0][2])
+        
+        # Can't be as sure with training with both sets
+        # So only test final results
+        vG0 = float(net.model(exG0.s0)[0][2])
+        vGF = float(net.model(exGF.s0)[0][2])
+        vC0 = float(net.model(exC0.s0)[0][2])
+        vCF = float(net.model(exCF.s0)[0][2])
 
-            # Final States should have clear learning
-            self.assertGreater(vGF, vGF_last)
-            self.assertLess(vCF, vCF_last)
+        # Final States should have clear learning
+        self.assertGreater(vG0, vG0_last)
+        self.assertGreater(vGF, vGF_last)
 
-            # Note sure about starting states as much
-            #self.assertGreater(vM, vM_last)
-            #self.assertGreater(vF, vF_last)
+        self.assertLess(vC0, vC0_last)
+        self.assertLess(vCF, vCF_last)
 
-            vG0_last = vG0
-            vGF_last = vGF
-            vC0_last = vC0
-            vCF_last = vCF
 
 
 if __name__ == '__main__':
