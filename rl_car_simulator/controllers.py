@@ -35,8 +35,18 @@ class NetworkController(Controller):
         angle = min(max(control[0][1], -self.settings.keyboard.angle), self.settings.keyboard.angle)
         return CarControls(force, angle)
 
+class HardCodedController(Controller):
+    def __init__(self, settings, f, a):
+        self.settings = settings
+        self.f = f
+        self.a = a
+
+    def get_controls(self, state):
+        return CarControls(self.f, self.a)
+
 class Controllers:
-    def __init__(self, keyboard, network):
+    def __init__(self, keyboard, network, hardcoded):
         self.keyboard = keyboard
         self.network = network
+        self.hardcoded = hardcoded
 

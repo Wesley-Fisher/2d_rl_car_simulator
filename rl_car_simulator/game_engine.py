@@ -13,7 +13,7 @@ from .network import Network
 from .car import Car, CarState
 from .controllers import KeyboardController, NetworkController, Controllers
 from .experience_engine import ExperienceEngine
-from .experience_prprocessor import ExperiencePreprocessor
+from .experience_preprocessor import ExperiencePreprocessor
 
 class GameEngine:
     def __init__(self):
@@ -33,7 +33,7 @@ class GameEngine:
 
         keyboard = KeyboardController(self.settings)
         network = NetworkController(self.settings, self.network)
-        self.controllers = Controllers(keyboard, network)
+        self.controllers = Controllers(keyboard, network, None)
         self.physics.set_controllers(self.controllers)
 
         

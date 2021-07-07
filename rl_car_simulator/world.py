@@ -7,6 +7,7 @@ class World:
         self.all_cars = []
         self.keyboard_cars = []
         self.network_cars = []
+        self.hardcoded_cars = []
 
         self.walls = []
 

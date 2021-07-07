@@ -51,6 +51,10 @@ class PhysicsEngine:
             state = self.get_car_state(car)
             car.set_controls(self.controllers.network.get_controls(car.sensed_state))
 
+        for car in self.world.hardcoded_cars:
+            state = self.get_car_state(car)
+            car.set_controls(self.controllers.hardcoded.get_controls(car.sensed_state))
+
     def get_null_car_state(self):
         car = Car()
         base_state = np.array([car.state.x,
