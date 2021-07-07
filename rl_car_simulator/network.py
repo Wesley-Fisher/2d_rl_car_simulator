@@ -26,8 +26,8 @@ class Network:
         self.N = N
 
         self.model = Sequential()
-        ik = initializers.RandomNormal(stddev=0.1)
-        ib = initializers.RandomNormal(stddev=0.1)
+        ik = initializers.RandomNormal(stddev=0.1, seed=1)
+        ib = initializers.RandomNormal(stddev=0.1, seed=2)
 
         W = 1
 
@@ -102,7 +102,6 @@ class Network:
         prob = 1.0 / 2.0 * math.pi * math.exp(-0.5 * np.dot((ex.a0 - a0), (ex.a0 - a0) ))
 
         actor_step = prob * d * alpha * I * 0.0
-        print(actor_step)
         self.update_weights(float(actor_step), gradient_actor)
 
 
