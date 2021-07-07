@@ -220,6 +220,43 @@ class TestNetworkIntegration(unittest.TestCase):
             vM_last = vM
             vF_last = vF
 
+    def test_split_experience_learning(self):
+        expGoal, net = self.generate_goal_processed_experience()
+        expColl, _ = self.generate_collision_processed_experience()
+        
+        exG0 = expGoal[0]
+        exGF = expGoal[-1]
+        exC0 = expColl[0]
+        exCF = expColl[-1]
+
+        vG0_last = float(net.model(exG0.s0)[0][2])
+        vGF_last = float(net.model(exGF.s0)[0][2])
+        vC0_last = float(net.model(exC0.s0)[0][2])
+        vCF_last = float(net.model(exCF.s0)[0][2])
+
+        for i in range(0, 5):
+
+            for ex in expGoal + expColl:
+                net.train_sample(ex)
+            
+            vG0 = float(net.model(exG0.s0)[0][2])
+            vGF = float(net.model(exGF.s0)[0][2])
+            vC0 = float(net.model(exC0.s0)[0][2])
+            vCF = float(net.model(exCF.s0)[0][2])
+
+            # Final States should have clear learning
+            self.assertGreater(vGF, vGF_last)
+            self.assertLess(vCF, vCF_last)
+
+            # Note sure about starting states as much
+            #self.assertGreater(vM, vM_last)
+            #self.assertGreater(vF, vF_last)
+
+            vG0_last = vG0
+            vGF_last = vGF
+            vC0_last = vC0
+            vCF_last = vCF
+
 
 if __name__ == '__main__':
     test = TestNetworkBasics()
