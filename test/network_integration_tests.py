@@ -236,24 +236,27 @@ class TestNetworkIntegration(unittest.TestCase):
         vC0_last = float(net.model(exC0.s0)[0][2])
         vCF_last = float(net.model(exCF.s0)[0][2])
 
-        for i in range(0, 10):
+        # Look for overall improvement in 5 iterations
+        # of a few steps each
+        for i in range(0, 5):
+            for i in range(0, 10):
 
-            for ex in expGoal + expColl:
-                net.train_sample(ex)
-        
-        # Can't be as sure with training with both sets
-        # So only test final results
-        vG0 = float(net.model(exG0.s0)[0][2])
-        vGF = float(net.model(exGF.s0)[0][2])
-        vC0 = float(net.model(exC0.s0)[0][2])
-        vCF = float(net.model(exCF.s0)[0][2])
+                for ex in expGoal + expColl:
+                    net.train_sample(ex)
+            
+            # Can't be as sure with training with both sets
+            # So only test final results
+            vG0 = float(net.model(exG0.s0)[0][2])
+            vGF = float(net.model(exGF.s0)[0][2])
+            vC0 = float(net.model(exC0.s0)[0][2])
+            vCF = float(net.model(exCF.s0)[0][2])
 
-        # Final States should have clear learning
-        self.assertGreater(vG0, vG0_last)
-        self.assertGreater(vGF, vGF_last)
+            # Final States should have clear learning
+            self.assertGreater(vG0, vG0_last)
+            self.assertGreater(vGF, vGF_last)
 
-        self.assertLess(vC0, vC0_last)
-        self.assertLess(vCF, vCF_last)
+            self.assertLess(vC0, vC0_last)
+            self.assertLess(vCF, vCF_last)
 
 
 
