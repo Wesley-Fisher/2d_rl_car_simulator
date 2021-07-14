@@ -5,6 +5,7 @@ import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, ReLU
 from tensorflow.keras import initializers
+from tensorflow.keras.optimizers import Adam
 from tensorflow.python.ops.gen_math_ops import is_nan 
 
 
@@ -60,22 +61,26 @@ class Network:
     def calculate_gradients(self, state):
         with tf.GradientTape() as tape:
             v = self.model(state)[0][2]
-        trainable = self.model.trainable_variables
-        gradient_critic = tape.gradient(v, trainable)
+        trainable_critic = self.model.trainable_variables
+        gradient_critic = tape.gradient(v, trainable_critic)
 
         with tf.GradientTape() as tape:
             a = self.model(state)[0][0:2]
-        trainable = self.model.trainable_variables
-        gradient_actor = tape.gradient(a, trainable)
+        trainable_actor = self.model.trainable_variables
+        gradient_actor = tape.gradient(a, trainable_actor)
         
-        return v, gradient_critic, a, gradient_actor
+        return v, gradient_critic, trainable_critic, a, gradient_actor, trainable_actor
 
-    def update_weights(self, step_size, gradients):
+    def update_weights(self, step_size, gradients, trainable):
+        optimizer = Adam(learning_rate=step_size)
+        optimizer.apply_gradients(zip(gradients, trainable))
+        '''
         weights = self.model.get_weights()
         for i in range(0, len(gradients)):
             dw = step_size * gradients[i]
             weights[i] = weights[i] + dw
         self.model.set_weights(weights)
+        '''
 
     def train_sample(self, ex):
         results = SampleTrainingResults()
@@ -86,7 +91,7 @@ class Network:
 
         I = 1.0 #math.pow(gamma, ex.step_in_ep)
 
-        v0, gradient_critic, a0, gradient_actor = self.calculate_gradients(s0)
+        v0, gradient_critic, trainable_critic, a0, gradient_actor, trainable_actor = self.calculate_gradients(s0)
         v1 = self.model(s1)[0][2]
 
         results.v0.append(v0)
@@ -96,13 +101,13 @@ class Network:
 
         d = ex.r1 + gamma * v1 - v0
         step = d * alpha * I
-        self.update_weights(float(step), gradient_critic)
+        self.update_weights(-float(step), gradient_critic, trainable_critic)
 
 
         prob = 1.0 / 2.0 * math.pi * math.exp(-0.5 * np.dot((ex.a0 - a0), (ex.a0 - a0) ))
 
         actor_step = prob * d * alpha * I * 0.0
-        self.update_weights(float(actor_step), gradient_actor)
+        self.update_weights(-float(actor_step), gradient_actor, trainable_actor)
 
 
         v0 = self.model(s0)[0][2]
