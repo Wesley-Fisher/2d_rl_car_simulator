@@ -30,15 +30,16 @@ class Network:
         ik = initializers.RandomNormal(stddev=0.1, seed=1)
         ib = initializers.RandomNormal(stddev=0.1, seed=2)
 
-        W = 1
+        W = 0.5
 
-        self.model.add(Dense(W*self.N, input_dim=self.N, kernel_initializer=ik, bias_initializer=ib))
+        WN = int(W*self.N + 1)
+        self.model.add(Dense(self.N, input_dim=self.N, kernel_initializer=ik, bias_initializer=ib))
         self.model.add(ReLU(negative_slope=0.3))
 
-        self.model.add(Dense(W*self.N, kernel_initializer=ik, bias_initializer=ib))
+        self.model.add(Dense(WN, kernel_initializer=ik, bias_initializer=ib))
         self.model.add(ReLU(negative_slope=0.3))
 
-        self.model.add(Dense(W*self.N, kernel_initializer=ik, bias_initializer=ib))
+        self.model.add(Dense(WN, kernel_initializer=ik, bias_initializer=ib))
         self.model.add(ReLU(negative_slope=0.3))
 
         self.model.add(Dense(3, kernel_initializer=ik, bias_initializer=ib))
