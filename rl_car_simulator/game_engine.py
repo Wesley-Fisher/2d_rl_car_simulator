@@ -80,10 +80,10 @@ class GameEngine:
                 self.experience.sample_end_states()
                 self.experience.sample_rewards()
 
+                self.experience.new_experience_step()
+
                 self.experience.handle_episode_ends()
                 self.physics.handle_resets()
-
-                self.experience.new_experience_step()
 
                 self.network.freeze()
                 self.physics.controls_step()
