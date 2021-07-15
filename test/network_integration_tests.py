@@ -239,6 +239,16 @@ class TestNetworkIntegration(unittest.TestCase):
         vC0_last = float(net.model(exC0.s0)[0][2])
         vCF_last = float(net.model(exCF.s0)[0][2])
 
+        def print_exp(header, exp):
+            print(header + ":")
+            for ex in exp:
+                v0 = float(net.model(ex.s0)[0][2])
+                v1 = float(net.model(ex.s1)[0][2])
+                r = ex.r1
+                d = r + settings.learning.gamma * v1 - v0
+                print("%.3f\t%.3f\t%.3f\t%.3f" % (v0, v1, r, d))
+            print("\n\n")
+
         # Look for overall improvement in 5 iterations
         # of a few steps each
         for i in range(0, 5):
@@ -246,17 +256,8 @@ class TestNetworkIntegration(unittest.TestCase):
 
                 for ex in expGoal + expColl:
                     net.train_sample(ex)
+                print_exp("Goal Vals",[expGoal[0]])
 
-            def print_exp(header, exp):
-
-                print(header + ":")
-                for ex in expGoal:
-                    v0 = float(net.model(ex.s0)[0][2])
-                    v1 = float(net.model(ex.s1)[0][2])
-                    r = ex.r1
-                    print("%.3f\t%.3f\t%.3f" % (v0, v1, r))
-                print("\n\n")
-            print_exp("Goal Vals", expGoal)
             print_exp("Coll Vals", expColl)
 
             
