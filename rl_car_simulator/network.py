@@ -73,6 +73,7 @@ class Network:
         return v, gradient_critic, trainable_critic, a, gradient_actor, trainable_actor
 
     def update_weights(self, step_size, gradients, trainable):
+        step_size = -step_size # For Adam. update_weights(+) -> Ascent
         optimizer = Adam(learning_rate=step_size)
         optimizer.apply_gradients(zip(gradients, trainable))
         '''
@@ -102,13 +103,13 @@ class Network:
 
         d = ex.r1 + gamma * v1 - v0
         step = d * alpha * I
-        self.update_weights(-float(step), gradient_critic, trainable_critic)
+        self.update_weights(float(step), gradient_critic, trainable_critic)
 
 
         prob = 1.0 / 2.0 * math.pi * math.exp(-0.5 * np.dot((ex.a0 - a0), (ex.a0 - a0) ))
 
         actor_step = prob * d * alpha * I * 0.0
-        self.update_weights(-float(actor_step), gradient_actor, trainable_actor)
+        self.update_weights(float(actor_step), gradient_actor, trainable_actor)
 
 
         v0 = self.model(s0)[0][2]
