@@ -59,12 +59,12 @@ class TestNetworkIntegration(unittest.TestCase):
 
             experience.sample_end_states()
             experience.sample_rewards()
+            experience.new_experience_step()
 
             done = car.collided
+
             experience.handle_episode_ends()
             physics.handle_resets()
-
-            experience.new_experience_step()
 
             physics.controls_step()
 
@@ -84,6 +84,7 @@ class TestNetworkIntegration(unittest.TestCase):
         self.assertGreater(i, 10)
 
         experience_raw = preprocessor.experience_queue.pop(1)
+        #print([ex.r1 for ex in experience_raw])
         self.assertGreater(len(experience_raw), 2)
 
         experience = preprocessor.preprocess_episode(experience_raw)
@@ -91,8 +92,9 @@ class TestNetworkIntegration(unittest.TestCase):
 
     def test_collision_learning(self):
         settings = Settings()
-        settings.physics.physics_timestep = 0.05
-        settings.physics.control_timestep = 0.05
+        settings.learning.max_episode_length = 200
+        settings.physics.physics_timestep = 0.1
+        settings.physics.control_timestep = 0.1
         settings.learning.alpha = 1e-4
         experience, net = self.generate_collision_processed_experience(settings)
         
@@ -156,12 +158,11 @@ class TestNetworkIntegration(unittest.TestCase):
 
             experience.sample_end_states()
             experience.sample_rewards()
+            experience.new_experience_step()
 
             done = car.reached_goal
             experience.handle_episode_ends()
             physics.handle_resets()
-
-            experience.new_experience_step()
 
             physics.controls_step()
 
@@ -180,7 +181,7 @@ class TestNetworkIntegration(unittest.TestCase):
         self.assertTrue(done)
         self.assertGreater(i, 10)
 
-        experience_raw = preprocessor.experience_queue.pop(1)
+        experience_raw = preprocessor.experience_queue.pop(0)
         self.assertGreater(len(experience_raw), 2)
 
         experience = preprocessor.preprocess_episode(experience_raw)
@@ -188,8 +189,9 @@ class TestNetworkIntegration(unittest.TestCase):
 
     def test_goal_learning(self):
         settings = Settings()
-        settings.physics.physics_timestep = 0.05
-        settings.physics.control_timestep = 0.05
+        settings.learning.max_episode_length = 200
+        settings.physics.physics_timestep = 0.1
+        settings.physics.control_timestep = 0.1
         settings.learning.alpha = 1e-4
         experience, net = self.generate_goal_processed_experience(settings)
         
@@ -220,8 +222,9 @@ class TestNetworkIntegration(unittest.TestCase):
 
     def test_split_experience_learning(self):
         settings = Settings()
-        settings.physics.physics_timestep = 0.05
-        settings.physics.control_timestep = 0.05
+        settings.learning.max_episode_length = 200
+        settings.physics.physics_timestep = 0.1
+        settings.physics.control_timestep = 0.1
         settings.learning.alpha = 1e-4
         expGoal, net = self.generate_goal_processed_experience(settings)
         expColl, _ = self.generate_collision_processed_experience(settings)
@@ -239,10 +242,23 @@ class TestNetworkIntegration(unittest.TestCase):
         # Look for overall improvement in 5 iterations
         # of a few steps each
         for i in range(0, 5):
-            for i in range(0, 10):
+            for i in range(0, 20):
 
                 for ex in expGoal + expColl:
                     net.train_sample(ex)
+
+            def print_exp(header, exp):
+
+                print(header + ":")
+                for ex in expGoal:
+                    v0 = float(net.model(ex.s0)[0][2])
+                    v1 = float(net.model(ex.s1)[0][2])
+                    r = ex.r1
+                    print("%.3f\t%.3f\t%.3f" % (v0, v1, r))
+                print("\n\n")
+            print_exp("Goal Vals", expGoal)
+            print_exp("Coll Vals", expColl)
+
             
             # Can't be as sure with training with both sets
             # So only test final results
