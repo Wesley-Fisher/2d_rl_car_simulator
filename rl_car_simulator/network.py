@@ -95,6 +95,8 @@ class Network:
 
         v0, gradient_critic, trainable_critic, a0, gradient_actor, trainable_actor = self.calculate_gradients(s0)
         v1 = self.model(s1)[0][2]
+        if ex.next_terminal:
+            v1 = 0.0
 
         results.v0.append(v0)
         results.v1.append(v0)

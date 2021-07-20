@@ -50,7 +50,7 @@ class Preprocessing:
 
 class Learning:
     def __init__(self):
-        self.gamma = 0.9
+        self.gamma = 0.9999
         self.alpha = 0.1
         self.max_episode_length = 50
 

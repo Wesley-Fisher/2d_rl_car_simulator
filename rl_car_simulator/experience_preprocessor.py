@@ -8,6 +8,7 @@ class TDExperience:
         self.G = None
         self.s1 = None
         self.step_in_ep = 0
+        self.next_terminal = False
 
 class ExperiencePreprocessor:
     def __init__(self, settings):
@@ -36,6 +37,7 @@ class ExperiencePreprocessor:
             td.s1 = ex.s1.reshape((1,8))
             td.step_in_ep = N - i
             td.G = G
+            td.next_terminal = ( i == 0)
 
             out.append(td)
             i = i + 1
