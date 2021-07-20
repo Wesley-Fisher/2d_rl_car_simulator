@@ -1,5 +1,8 @@
 import math
 import numpy as np
+import copy
+
+import tensorflow as tf
 
 import unittest
 
@@ -16,6 +19,21 @@ from rl_car_simulator.experience_engine import ExperienceEngine
 
 class TestNetworkIntegration(unittest.TestCase):
 
+    coll_exp_1 = None
+    goal_exp_2 = None
+    network_1 = None
+
+    @classmethod
+    def setUpClass(cls):
+        settings = Settings()
+        settings.learning.max_episode_length = 200
+        settings.physics.physics_timestep = 0.1
+        settings.physics.control_timestep = 0.1
+        settings.learning.alpha = 1e-4
+        cls.coll_exp_1, cls.network_1 = cls.generate_collision_processed_experience(settings)
+        cls.goal_exp_1,             _ = cls.generate_goal_processed_experience(settings)
+        
+
     def test_smoke(self):
         settings = Settings()
         world = WorldCreation(settings).get()
@@ -24,7 +42,7 @@ class TestNetworkIntegration(unittest.TestCase):
         net = Network(settings, len(null_state))
         self.assertTrue(True)
 
-    def generate_collision_processed_experience(self, settings):
+    def generate_collision_processed_experience(settings):
         world = WorldCreation(settings).get()
         world.walls.append(Wall(((25,0),(25,20))))
         physics = PhysicsEngine(settings, world)
@@ -78,52 +96,19 @@ class TestNetworkIntegration(unittest.TestCase):
             #print(car.state.x)
 
             # Catch errors that lead to inf loop
-            self.assertTrue(i < 1000)
+            assert(i < 1000)
             i = i + 1
-        self.assertTrue(done)
-        self.assertGreater(i, 10)
+        assert(done)
+        assert(i > 10)
 
         experience_raw = preprocessor.experience_queue.pop(1)
         #print([ex.r1 for ex in experience_raw])
-        self.assertGreater(len(experience_raw), 2)
+        assert(len(experience_raw) > 2)
 
         experience = preprocessor.preprocess_episode(experience_raw)
         return experience, net
 
-    def test_collision_learning(self):
-        settings = Settings()
-        settings.learning.max_episode_length = 200
-        settings.physics.physics_timestep = 0.1
-        settings.physics.control_timestep = 0.1
-        settings.learning.alpha = 1e-4
-        experience, net = self.generate_collision_processed_experience(settings)
-        
-        ex0 = experience[0]
-        exM = experience[int(len(experience)/2)]
-        exF = experience[-1]
-
-        v0_last = float(net.model(ex0.s0)[0][2])
-        vM_last = float(net.model(exM.s0)[0][2])
-        vF_last = float(net.model(exF.s0)[0][2])
-
-        for i in range(0, 5):
-
-            for ex in experience:
-                net.train_sample(ex)
-            
-            v0 = float(net.model(ex0.s0)[0][2])
-            vM = float(net.model(exM.s0)[0][2])
-            vF = float(net.model(exF.s0)[0][2])
-
-            self.assertLess(v0, v0_last)
-            self.assertLess(vM, vM_last)
-            self.assertLess(vF, vF_last)
-
-            v0_last = v0
-            vM_last = vM
-            vF_last = vF
-
-    def generate_goal_processed_experience(self, settings):
+    def generate_goal_processed_experience(settings):
         world = WorldCreation(settings).get()
         physics = PhysicsEngine(settings, world)
         cs = CarState()
@@ -176,24 +161,55 @@ class TestNetworkIntegration(unittest.TestCase):
             #print(car.state.x)
 
             # Catch errors that lead to inf loop
-            self.assertTrue(i < 1000)
+            assert(i < 1000)
             i = i + 1
-        self.assertTrue(done)
-        self.assertGreater(i, 10)
+        assert(done)
+        assert(i > 10)
 
         experience_raw = preprocessor.experience_queue.pop(0)
-        self.assertGreater(len(experience_raw), 2)
+        assert(len(experience_raw) > 2)
 
         experience = preprocessor.preprocess_episode(experience_raw)
         return experience, net
 
+    def test_collision_learning(self):
+        experience = copy.deepcopy(self.coll_exp_1)
+        net = copy.deepcopy(self.network_1)
+        net.model = tf.keras.models.clone_model(self.network_1.model)
+        
+        ex0 = experience[0]
+        exM = experience[int(len(experience)/2)]
+        exF = experience[-1]
+        try:
+            v0_last = float(net.model(ex0.s0)[0][2])
+        except AssertionError as e:
+            print(e)
+            vM_last = float(net.model(exM.s0)[0][2])
+        vM_last = float(net.model(exM.s0)[0][2])
+        vF_last = float(net.model(exF.s0)[0][2])
+
+        for i in range(0, 5):
+
+            for ex in experience:
+                net.train_sample(ex)
+            
+            v0 = float(net.model(ex0.s0)[0][2])
+            vM = float(net.model(exM.s0)[0][2])
+            vF = float(net.model(exF.s0)[0][2])
+
+            self.assertLess(v0, v0_last)
+            self.assertLess(vM, vM_last)
+            self.assertLess(vF, vF_last)
+
+            v0_last = v0
+            vM_last = vM
+            vF_last = vF
+
+   
     def test_goal_learning(self):
-        settings = Settings()
-        settings.learning.max_episode_length = 200
-        settings.physics.physics_timestep = 0.1
-        settings.physics.control_timestep = 0.1
-        settings.learning.alpha = 1e-4
-        experience, net = self.generate_goal_processed_experience(settings)
+        experience = copy.deepcopy(self.goal_exp_1)
+        net = copy.deepcopy(self.network_1)
+        net.model = tf.keras.models.clone_model(self.network_1.model)
         
         ex0 = experience[0]
         exM = experience[int(len(experience)/2)]
@@ -222,12 +238,11 @@ class TestNetworkIntegration(unittest.TestCase):
 
     def test_split_experience_learning(self):
         settings = Settings()
-        settings.learning.max_episode_length = 200
-        settings.physics.physics_timestep = 0.1
-        settings.physics.control_timestep = 0.1
         settings.learning.alpha = 1e-4
-        expGoal, net = self.generate_goal_processed_experience(settings)
-        expColl, _ = self.generate_collision_processed_experience(settings)
+        expGoal = copy.deepcopy(self.goal_exp_1)
+        expColl = copy.deepcopy(self.coll_exp_1)
+        net = copy.deepcopy(self.network_1)
+        net.model = tf.keras.models.clone_model(self.network_1.model)
         
         exG0 = expGoal[0]
         exGF = expGoal[-1]
