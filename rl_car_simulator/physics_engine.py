@@ -4,9 +4,10 @@ import numpy as np
 from .car import Car, CarState
 
 class PhysicsEngine:
-    def __init__(self, settings, world):
+    def __init__(self, settings, world, experience):
         self.settings = settings
         self.world = world
+        self.experience = experience
 
         self.controllers = None
 
@@ -14,6 +15,26 @@ class PhysicsEngine:
     
     def set_controllers(self, controllers):
         self.controllers = controllers
+
+    def full_control_sensor_step(self):
+        self.sensors_step()
+        self.experience.sample_end_states()
+        self.experience.sample_rewards()
+
+        self.experience.new_experience_step()
+
+        self.experience.handle_episode_ends()
+        self.handle_resets()
+        
+        self.controls_step()
+
+        self.experience.sample_start_states()
+        self.experience.sample_controls()
+
+    def full_physics_termination_step(self):
+        self.physics_time_step()
+        self.handle_goals()
+        self.handle_collisions()
     
     def physics_time_step(self):
         for car in self.world.all_cars:

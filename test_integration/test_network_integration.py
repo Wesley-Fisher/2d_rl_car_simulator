@@ -37,7 +37,9 @@ class TestNetworkIntegration(unittest.TestCase):
     def test_smoke(self):
         settings = Settings()
         world = WorldCreation(settings).get()
-        physics = PhysicsEngine(settings, world)
+        preprocessor = ExperiencePreprocessor(settings)
+        experience = ExperienceEngine(settings, world, preprocessor)
+        physics = PhysicsEngine(settings, world, experience)
         null_state = physics.get_car_state(Car(settings, CarState()))
         net = Network(settings, len(null_state))
         self.assertTrue(True)
@@ -45,7 +47,9 @@ class TestNetworkIntegration(unittest.TestCase):
     def generate_collision_processed_experience(settings):
         world = WorldCreation(settings).get()
         world.walls.append(Wall(((25,0),(25,20))))
-        physics = PhysicsEngine(settings, world)
+        preprocessor = ExperiencePreprocessor(settings)
+        experience = ExperienceEngine(settings, world, preprocessor)
+        physics = PhysicsEngine(settings, world, experience)
         cs = CarState()
         cs.x = 20.0
         cs.y = 10.0
@@ -64,41 +68,17 @@ class TestNetworkIntegration(unittest.TestCase):
 
         s0 = np.array(s0).reshape((1,len(s0)))
 
-        preprocessor = ExperiencePreprocessor(settings)
-        experience = ExperienceEngine(settings, world, preprocessor)
+
 
         # Generate one set of experience of driving into a wall
         i = 0
-        done = False
-        while not done:
-            # Mock physics and experience loop
-            # - Duplicates code, but can extract time when done
-            physics.sensors_step()
-
-            experience.sample_end_states()
-            experience.sample_rewards()
-            experience.new_experience_step()
-
-            done = car.collided
-
-            experience.handle_episode_ends()
-            physics.handle_resets()
-
-            physics.controls_step()
-
-            experience.sample_start_states()
-            experience.sample_controls()
-
-            physics.physics_time_step()
-            physics.handle_goals()
-            physics.handle_collisions()
-
-            #print(car.state.x)
+        while len(preprocessor.experience_queue) < 2:
+            physics.full_control_sensor_step()
+            physics.full_physics_termination_step()
 
             # Catch errors that lead to inf loop
             assert(i < 1000)
             i = i + 1
-        assert(done)
         assert(i > 10)
 
         experience_raw = preprocessor.experience_queue.pop(1)
@@ -110,7 +90,9 @@ class TestNetworkIntegration(unittest.TestCase):
 
     def generate_goal_processed_experience(settings):
         world = WorldCreation(settings).get()
-        physics = PhysicsEngine(settings, world)
+        preprocessor = ExperiencePreprocessor(settings)
+        experience = ExperienceEngine(settings, world, preprocessor)
+        physics = PhysicsEngine(settings, world, experience)
         cs = CarState()
         cs.x = 20.0
         cs.y = 10.0
@@ -130,40 +112,15 @@ class TestNetworkIntegration(unittest.TestCase):
 
         s0 = np.array(s0).reshape((1,len(s0)))
 
-        preprocessor = ExperiencePreprocessor(settings)
-        experience = ExperienceEngine(settings, world, preprocessor)
-
         # Generate one set of experience of driving into a wall
         i = 0
-        done = False
-        while not done:
-            # Mock physics and experience loop
-            # - Duplicates code, but can extract time when done
-            physics.sensors_step()
-
-            experience.sample_end_states()
-            experience.sample_rewards()
-            experience.new_experience_step()
-
-            done = car.reached_goal
-            experience.handle_episode_ends()
-            physics.handle_resets()
-
-            physics.controls_step()
-
-            experience.sample_start_states()
-            experience.sample_controls()
-
-            physics.physics_time_step()
-            physics.handle_goals()
-            physics.handle_collisions()
-
-            #print(car.state.x)
+        while len(preprocessor.experience_queue) < 1:
+            physics.full_control_sensor_step()
+            physics.full_physics_termination_step()
 
             # Catch errors that lead to inf loop
             assert(i < 1000)
             i = i + 1
-        assert(done)
         assert(i > 10)
 
         experience_raw = preprocessor.experience_queue.pop(0)

@@ -22,10 +22,11 @@ class GameEngine:
         self.world = WorldCreation(self.settings).get()
 
         self.experience_preprocessor = ExperiencePreprocessor(self.settings)
+        self.experience = ExperienceEngine(self.settings, self.world, self.experience_preprocessor)
 
         self.graphics = Graphics(self.settings, self.world)
-        self.physics = PhysicsEngine(self.settings, self.world)
-        self.experience = ExperienceEngine(self.settings, self.world, self.experience_preprocessor)
+        self.physics = PhysicsEngine(self.settings, self.world, self.experience)
+        
         
         null_state = self.physics.get_car_state(Car(self.settings, CarState()))
         self.network = Network(self.settings, len(null_state))
@@ -75,27 +76,12 @@ class GameEngine:
             t_loop_start = self.util.now()
 
             if self.util.now() - t_last_controls > self.settings.physics.control_timestep:
-                self.physics.sensors_step()
-
-                self.experience.sample_end_states()
-                self.experience.sample_rewards()
-
-                self.experience.new_experience_step()
-
-                self.experience.handle_episode_ends()
-                self.physics.handle_resets()
-
                 self.network.freeze()
-                self.physics.controls_step()
-
-                self.experience.sample_start_states()
-                self.experience.sample_controls()
+                self.physics.full_control_sensor_step()
 
                 t_last_controls = self.util.now()
             
-            self.physics.physics_time_step()
-            self.physics.handle_goals()
-            self.physics.handle_collisions()
+            self.physics.full_physics_termination_step()
 
             dt = self.util.now() - t_loop_start
             t_sleep = max(self.settings.physics.physics_timestep - dt, 0.0)
