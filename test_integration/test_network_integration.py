@@ -173,7 +173,6 @@ class TestNetworkIntegration(unittest.TestCase):
         return experience, net
 
     def test_collision_learning(self):
-        return
         experience = copy.deepcopy(self.coll_exp_1)
         net = copy.deepcopy(self.network_1)
         net.model = tf.keras.models.clone_model(self.network_1.model)
@@ -208,7 +207,6 @@ class TestNetworkIntegration(unittest.TestCase):
 
    
     def test_goal_learning(self):
-        return
         experience = copy.deepcopy(self.goal_exp_1)
         net = copy.deepcopy(self.network_1)
         net.model = tf.keras.models.clone_model(self.network_1.model)
@@ -239,7 +237,6 @@ class TestNetworkIntegration(unittest.TestCase):
             vF_last = vF
 
     def test_terminal_goal_learning(self):
-        return
         settings = Settings()
         settings.learning.alpha = 1e-3
         settings.learning.gamma = 0.2
@@ -272,7 +269,6 @@ class TestNetworkIntegration(unittest.TestCase):
         return
 
     def test_terminal_coll_learning(self):
-        return
         settings = Settings()
         settings.learning.alpha = 1e-3
         settings.learning.gamma = 0.2
