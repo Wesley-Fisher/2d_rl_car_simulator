@@ -70,6 +70,7 @@ class Walls:
 class Memory:
     def __init__(self):
         self.min_reduce_size = 50
+        self.min_train_size = 25
 
 class Files:
     def __init__(self):

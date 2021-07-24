@@ -1,7 +1,9 @@
 import math
 import numpy as np
+import pickle as pk
 
 import tensorflow as tf
+from tensorflow import keras
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, ReLU
 from tensorflow.keras import initializers
@@ -149,11 +151,12 @@ class Network:
 
         return False
     
-    def train_epoch(self):
+    def add_new_experience(self):
         new_exp = self.new_training_experiences
         self.new_training_experiences = []
         self.training_experience = self.training_experience + new_exp
 
+    def train_epoch(self):
         stat = TrainingStats()
         stat.num_samples = len(self.training_experience)
         remove_indices = []
@@ -198,6 +201,12 @@ class Network:
                 num_rem = num_rem + 1
         return num_rem
 
+    def save_state(self):
+        memory_dir = self.settings.files.root_dir + "/memory"
+        exp_file = memory_dir + "/experience.pk"
+        with open(exp_file, 'wb') as handle:
+            pk.dump(self.training_experience, handle)
 
-
-
+        network_file = memory_dir + "/model.h5"
+        #tf.keras.models.save_model(self.model, filepath=network_file)
+        self.model.save(network_file)

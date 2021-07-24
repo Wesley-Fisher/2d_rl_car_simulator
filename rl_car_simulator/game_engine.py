@@ -99,9 +99,15 @@ class GameEngine:
     
     def training_fn(self):
         while self.running:
+            time.sleep(0.1)
+            self.network.add_new_experience()
+
+            if len(self.network.training_experience) < self.settings.memory.min_train_size:
+                continue
+
             stats, training_results = self.network.train_epoch()
             num_rem = self.network.remove_samples(training_results)
             print("Training Stats:")
             print("Num Samples: %d" % stats.num_samples)
             print("Removed: %d" % num_rem)
-            time.sleep(0.1)
+            self.network.save_state()
