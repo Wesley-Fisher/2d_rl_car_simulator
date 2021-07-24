@@ -65,11 +65,11 @@ class ExperienceEngine:
             if car.reached_goal:
                 self.preprocessor.new_experience(car.episode_steps)
                 car.episode_steps = []
-                print("Reached Goal")
+                print("Reached Goal - step %d" % len(car.episode_steps))
             elif car.collided:
                 self.preprocessor.new_experience(car.episode_steps)
                 car.episode_steps = []
-                print("Collided")
+                print("Collided - step %d" % len(car.episode_steps))
 
             l = self.settings.learning.max_episode_length
             if l > 0 and len(car.episode_steps) > l:

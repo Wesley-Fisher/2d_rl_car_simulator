@@ -67,6 +67,10 @@ class Walls:
         self.walls = [((15,5),(25,5))]
         self.walls = self.walls + [wall_upper, wall_lower, wall_left, wall_right]
 
+class Memory:
+    def __init__(self):
+        self.min_reduce_size = 50
+
 class Settings:
     def __init__(self):
         self.world = WorldSettings()
@@ -81,3 +85,4 @@ class Settings:
         self.preprocessing = Preprocessing()
         self.learning = Learning()
         self.statistics = Statistics()
+        self.memory = Memory()

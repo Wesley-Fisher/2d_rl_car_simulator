@@ -192,7 +192,8 @@ class Network:
         remove_indices.reverse()
         
         for ri in remove_indices:
-            if ri < len(self.training_experience):
+            l = len(self.training_experience)
+            if ri < l and l < self.settings.memory.min_reduce_size:
                 self.training_experience.pop(ri)
                 num_rem = num_rem + 1
         return num_rem

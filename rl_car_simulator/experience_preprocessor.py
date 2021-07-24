@@ -20,7 +20,7 @@ class ExperiencePreprocessor:
         self.experience_queue.append(exp)
 
     def preprocess_episode(self, exp):
-        print("Adding episode with %d steps" % len(exp))
+        #print("Adding episode with %d steps" % len(exp))
         G = 0.0
         exp.reverse()
         N = len(exp)
