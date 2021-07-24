@@ -16,9 +16,9 @@ from .experience_engine import ExperienceEngine
 from .experience_preprocessor import ExperiencePreprocessor
 
 class GameEngine:
-    def __init__(self):
+    def __init__(self, settings):
         self.util = Utility()
-        self.settings = Settings()
+        self.settings = settings
         self.world = WorldCreation(self.settings).get()
 
         self.experience_preprocessor = ExperiencePreprocessor(self.settings)

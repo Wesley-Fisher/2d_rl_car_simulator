@@ -71,8 +71,13 @@ class Memory:
     def __init__(self):
         self.min_reduce_size = 50
 
+class Files:
+    def __init__(self):
+        self.root_dir = ""
+
 class Settings:
     def __init__(self):
+        self.files = Files()
         self.world = WorldSettings()
         self.graphics = GraphicsSettings()
         self.application = ApplicationSettings()
