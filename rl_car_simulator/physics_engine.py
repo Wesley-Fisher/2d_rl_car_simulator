@@ -43,21 +43,19 @@ class PhysicsEngine:
     def step_car_physics(self, car):
         #print(car.controls.force)
         dt = self.settings.physics.physics_timestep
-        v = math.sqrt(car.state.vx*car.state.vx + car.state.vy*car.state.vy)
-        ang = math.atan2(car.state.vy, car.state.vx)
-        ang = ang - car.state.h
-        v = v * math.cos(ang)
+        v = car.state.v
+        #ang = math.atan2(car.state.vy, car.state.vx)
+        #ang = ang - car.state.h
+        #v = v * math.cos(ang)
 
         v = v + (car.controls.force - v*self.settings.car_properties.fric) *  dt / self.settings.car_properties.mass
 
         car.state.dh = v * car.controls.steer
         car.state.h = car.state.h + car.state.dh * dt 
 
-        car.state.vx = v * math.cos(car.state.h)
-        car.state.vy = v * math.sin(car.state.h)
-
-        car.state.x = car.state.x + car.state.vx * dt
-        car.state.y = car.state.y + car.state.vy * dt
+        car.state.v = v
+        car.state.x = car.state.x + car.state.v * math.cos(car.state.h) * dt
+        car.state.y = car.state.y + car.state.v * math.sin(car.state.h) * dt
 
     def sensors_step(self):
         for car in self.world.all_cars:

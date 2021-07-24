@@ -6,10 +6,8 @@ from .utilities import Utility
 class CarState:
     def __init__(self):
         self.x = 0.0
-        self.vx = 0.0
-
         self.y = 0.0
-        self.vy = 0.0
+        self.v = 0.0
 
         self.h = 0.0
         self.vh = 0.0
