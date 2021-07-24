@@ -410,7 +410,7 @@ class TestNetworkIntegration(unittest.TestCase):
 
     def test_split_experience_actor_turning(self):
         settings = Settings()
-        settings.learning.alpha = 1e-2
+        settings.learning.alpha = 1e-3
         settings.learning.gamma = 0.9
         expGoal = copy.deepcopy(self.goal_exp_2)
         expColl = copy.deepcopy(self.coll_exp_2)
@@ -419,6 +419,7 @@ class TestNetworkIntegration(unittest.TestCase):
         net.model = tf.keras.models.clone_model(self.network_1.model)
 
         AG = -0.2
+        AC = 0.3
         
         exG0 = expGoal[0]
         exGF = expGoal[-1]
@@ -430,7 +431,7 @@ class TestNetworkIntegration(unittest.TestCase):
 
 
         diff_G0_last = abs(float(net.model(exG0.s0)[0][1] - AG))
-        diff_C0_last = abs(float(net.model(exC0.s0)[0][1] - AG))
+        diff_C0_last = abs(float(net.model(exC0.s0)[0][1] - AC))
 
         def print_exp(header, exp, head):
             if head:
@@ -457,12 +458,12 @@ class TestNetworkIntegration(unittest.TestCase):
             # Can't be as sure with training with both sets
             # So only test final results
             diff_G0 = abs(float(net.model(exG0.s0)[0][1] - AG))
-            diff_C0 = abs(float(net.model(exC0.s0)[0][1] - AG))
+            diff_C0 = abs(float(net.model(exC0.s0)[0][1] - AC))
 
         
         # Final States should have clear learning
         # Unsure of proper check for goal state
-        self.assertLess(diff_C0, diff_C0_last)
+        self.assertGreater(diff_C0, diff_C0_last)
 
 
 

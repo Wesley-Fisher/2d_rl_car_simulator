@@ -33,7 +33,7 @@ class NetworkController(Controller):
 
     def get_controls(self, state):
         control = self.network.get(state)
-        print(control)
+        #print(control)
         force = control[0][0] + random.gauss(0.0, 0.1*self.settings.statistics.sigma)
         angle = control[0][1] + random.gauss(0.0, 0.1*self.settings.statistics.sigma)
         force = min(max(force, -self.settings.keyboard.force), self.settings.keyboard.force)

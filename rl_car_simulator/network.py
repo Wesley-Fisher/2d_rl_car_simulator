@@ -126,7 +126,7 @@ class Network:
         d_density_wrt_u = -0.5 * mat_factor * (ex.a0 - a0) * prob
         d_density_wrt_u = float(d_density_wrt_u[0] + d_density_wrt_u[1])
 
-        actor_step = 0.0 * d * alpha * I * d_prob_wrt_density * d_density_wrt_u
+        actor_step = d * alpha * I * d_prob_wrt_density * d_density_wrt_u
         self.update_weights(float(actor_step), gradient_actor, trainable_actor)
 
 

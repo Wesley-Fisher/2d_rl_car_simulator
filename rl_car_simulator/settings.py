@@ -14,7 +14,7 @@ class WorldSettings:
                              (30.0, 30.0),
                              (25.0, 25.0),
                              (5.0, 20.0, 2.0)]
-        self.goal_points = [(3.0,3.0), (20.0, 20.0)]
+        self.goal_points = [(5.0,5.0), (20.0, 20.0), (10, 25), (35, 20)]
 
 class GraphicsSettings:
     def __init__(self):
@@ -23,8 +23,8 @@ class GraphicsSettings:
 
 class InitialCarSettings:
     def __init__(self):
-        self.keyboard_cars = 0
-        self.network_cars = 1
+        self.keyboard_cars = 1
+        self.network_cars = 2
 
 class CarProperties:
     def __init__(self):
@@ -51,7 +51,7 @@ class Preprocessing:
 class Learning:
     def __init__(self):
         self.gamma = 0.9999
-        self.alpha = 0.1
+        self.alpha = 1e-3
         self.max_episode_length = 50
 
 class Statistics:
@@ -64,7 +64,7 @@ class Walls:
         wall_left = ((0.0,0.0),(0.0, WorldSettings().size_y))
         wall_lower = ((0.0, WorldSettings().size_y),(WorldSettings().size_x,WorldSettings().size_y))
         wall_right= ((WorldSettings().size_x, 0.0),(WorldSettings().size_x,WorldSettings().size_y))
-        self.walls = [((5,5),(20,5))]
+        self.walls = [((15,5),(25,5))]
         self.walls = self.walls + [wall_upper, wall_lower, wall_left, wall_right]
 
 class Settings:
