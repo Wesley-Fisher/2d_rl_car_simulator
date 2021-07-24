@@ -108,15 +108,33 @@ class Network:
         self.update_weights(float(step), gradient_critic, trainable_critic)
 
 
-        prob = 1.0 / 2.0 * math.pi * math.exp(-0.5 * np.dot((ex.a0 - a0), (ex.a0 - a0) ))
+        sig = self.settings.statistics.sigma
+        in_e = -0.5 * np.dot((ex.a0 - a0), (ex.a0 - a0) ) * sig
+        density = 1.0 / (2.0 * math.pi * sig) * math.exp(in_e)
+        integration_width = 2 * math.pi * sig * 0.1
+        prob = integration_width * density
 
-        actor_step = prob * d * alpha * I * 0.0
+        # Step = alpha * delta * I * ln(grad(prob)
+        #      = alpha * delta * I * grad(prob) / prob
+        # Grad(prob) = d-prob/d-weights
+        #            = d-prob/d-u * d-u/d-weights
+        #            = d-prob/d-density * d-density/d-u * d-u/d-weights
+        # d-u/d-weights <- Keras gradient update
+
+        d_prob_wrt_density = integration_width
+        mat_factor = 1.0/(sig)
+        d_density_wrt_u = -0.5 * mat_factor * (ex.a0 - a0) * prob
+        d_density_wrt_u = float(d_density_wrt_u[0] + d_density_wrt_u[1])
+
+        actor_step = d * alpha * I * d_prob_wrt_density * d_density_wrt_u
+        print(actor_step)
         self.update_weights(float(actor_step), gradient_actor, trainable_actor)
 
 
         v0 = self.model(s0)[0][2]
         v1 = self.model(s1)[0][2]
-        a = self.model(s0)[0][0:1]
+        a = self.model(s0)[0][0:2]
+        print(a)
 
         results.v0.append(v0)
         results.v1.append(v0)

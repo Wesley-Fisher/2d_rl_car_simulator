@@ -54,6 +54,10 @@ class Learning:
         self.alpha = 0.1
         self.max_episode_length = 50
 
+class Statistics:
+    def __init__(self):
+        self.sigma = 0.1
+
 class Walls:
     def __init__(self):
         wall_upper = ((0.0,0.0),(WorldSettings().size_x, 0.0))
@@ -76,3 +80,4 @@ class Settings:
         self.walls = Walls()
         self.preprocessing = Preprocessing()
         self.learning = Learning()
+        self.statistics = Statistics()
