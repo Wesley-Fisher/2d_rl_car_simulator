@@ -98,6 +98,8 @@ class GameEngine:
                 self.network.add_experience(exp)
     
     def training_fn(self):
+        self.network.load_state()
+
         while self.running:
             time.sleep(0.1)
             self.network.add_new_experience()

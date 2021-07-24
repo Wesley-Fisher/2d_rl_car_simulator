@@ -71,6 +71,10 @@ class Memory:
     def __init__(self):
         self.min_reduce_size = 50
         self.min_train_size = 25
+        self.load_saved_experience = True
+        self.load_saved_network = True
+        self.merge_saved_experience = True
+        self.purge_merged_experience = False
 
 class Files:
     def __init__(self):
@@ -92,3 +96,4 @@ class Settings:
         self.learning = Learning()
         self.statistics = Statistics()
         self.memory = Memory()
+

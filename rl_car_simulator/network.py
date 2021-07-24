@@ -1,6 +1,9 @@
 import math
 import numpy as np
 import pickle as pk
+import os
+from os import listdir
+from os.path import isfile, join
 
 import tensorflow as tf
 from tensorflow import keras
@@ -210,3 +213,34 @@ class Network:
         network_file = memory_dir + "/model.h5"
         #tf.keras.models.save_model(self.model, filepath=network_file)
         self.model.save(network_file)
+
+    def load_state(self):
+        memory_dir = self.settings.files.root_dir + "/memory"
+
+        if self.settings.memory.load_saved_network:
+            network_file = memory_dir + "/model.h5"
+            self.model = keras.models.load_model(network_file)
+
+        if self.settings.memory.load_saved_experience:
+            main_exp_file = memory_dir + "/experience.pk"
+            files = []
+            del_files = []
+            if self.settings.memory.merge_saved_experience:
+                files = [f for f in listdir(memory_dir) if isfile(join(memory_dir, f))]
+                files = [f for f in files if f.startswith('exp') and f.endswith('.pk')]
+                del_files = [f for f in files if f != main_exp_file]
+            else:
+                files = [main_exp_file]
+        
+        self.training_experience = []
+        for file in files:
+            with open(memory_dir + "/" + file, 'rb') as handle:
+                exp = pk.load(handle)
+                self.training_experience = self.training_experience + exp
+        print("Loaded %d training samples" % len(self.training_experience))
+        self.save_state()
+
+        if self.settings.memory.purge_merged_experience:
+            for file in del_files:
+                os.remove(memory_dir + "/" + file)
+        
