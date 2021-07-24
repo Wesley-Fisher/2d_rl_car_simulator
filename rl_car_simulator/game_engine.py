@@ -99,8 +99,9 @@ class GameEngine:
     
     def training_fn(self):
         while self.running:
-            stats = self.network.train_epoch()
+            stats, training_results = self.network.train_epoch()
+            num_rem = self.network.remove_samples(training_results)
             print("Training Stats:")
             print("Num Samples: %d" % stats.num_samples)
-            print("Removed: %d" % stats.num_removed)
-            time.sleep(5.0)
+            print("Removed: %d" % num_rem)
+            time.sleep(0.1)

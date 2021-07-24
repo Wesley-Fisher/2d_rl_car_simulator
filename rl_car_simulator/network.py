@@ -158,28 +158,45 @@ class Network:
         stat.num_samples = len(self.training_experience)
         remove_indices = []
         idx = -1
+        results = []
         for ex in self.training_experience:
             idx = idx + 1
-            results = self.train_sample(ex)
+            result = self.train_sample(ex)
 
             for i in [0,1]:
-                if tf.math.is_nan(results.v0[i]):
+                if tf.math.is_nan(result.v0[i]):
                     exit()
-                if tf.math.is_nan(results.v1[i]):
+                if tf.math.is_nan(result.v1[i]):
                     exit()
-                if tf.math.is_nan(results.a[i][0]) or tf.math.is_nan(results.a[i][1]):
+                if tf.math.is_nan(result.a[i][0]) or tf.math.is_nan(result.a[i][1]):
                     exit()
+            results.append(result)
 
-            if self.no_network_change(results, self.settings.learning.alpha):
-                remove_indices.append(i)
+
 
         # Remove elements with no impact on learning
+
+        stat.num_removed = len(remove_indices)
+        
+        return stat, results
+
+    def remove_samples(self, training_results):
+        num_rem = 0
+        remove_indices = []
+        i = 0
+        for result in training_results:
+            if self.no_network_change(result, self.settings.learning.alpha):
+                remove_indices.append(i)
+            i = i + 1
+        
         remove_indices.reverse()
+        
         for ri in remove_indices:
             if ri < len(self.training_experience):
                 self.training_experience.pop(ri)
-        stat.num_removed = len(remove_indices)
-        
-        return stat
+                num_rem = num_rem + 1
+        return num_rem
+
+
 
 
