@@ -1,4 +1,6 @@
 import keyboard
+import random
+import math
 
 from .car import CarControls
 
@@ -31,8 +33,15 @@ class NetworkController(Controller):
 
     def get_controls(self, state):
         control = self.network.get(state)
-        force = min(max(control[0][0], -self.settings.keyboard.force), self.settings.keyboard.force)
-        angle = min(max(control[0][1], -self.settings.keyboard.angle), self.settings.keyboard.angle)
+        print(control)
+        force = control[0][0] + random.gauss(0.0, 0.1*self.settings.statistics.sigma)
+        angle = control[0][1] + random.gauss(0.0, 0.1*self.settings.statistics.sigma)
+        force = min(max(force, -self.settings.keyboard.force), self.settings.keyboard.force)
+        angle = min(max(angle, -self.settings.keyboard.angle), self.settings.keyboard.angle)
+        if math.isnan(force):
+            force = 0.0
+        if math.isnan(angle):
+            angle = 0.0
         return CarControls(force, angle)
 
 class HardCodedController(Controller):
