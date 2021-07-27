@@ -4,7 +4,8 @@ import numpy as np
 class TDExperience:
     def __init__(self):
         self.s0 = None
-        self.a0 = None
+        self.a_force = None
+        self.a_angle = None
         self.G = None
         self.s1 = None
         self.step_in_ep = 0
@@ -32,7 +33,8 @@ class ExperiencePreprocessor:
 
             td = TDExperience()
             td.s0 = ex.s0.reshape((1,8))
-            td.a0 = np.array([[ex.a0.force],[ex.a0.steer]]).reshape(-1)
+            td.a_force = ex.a0.force
+            td.a_angle = ex.a0.steer
             td.r1 = ex.r1
             td.s1 = ex.s1.reshape((1,8))
             td.step_in_ep = N - i

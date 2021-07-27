@@ -24,7 +24,9 @@ class SampleTrainingResults:
     def __init__(self):
         self.v0 = []
         self.v1 = []
-        self.a = []
+        self.a_force = []
+        self.a_angle = []
+        
 
 class Network:
     def __init__(self, settings, N):
@@ -71,11 +73,18 @@ class Network:
         gradient_critic = tape.gradient(v, trainable_critic)
 
         with tf.GradientTape() as tape:
-            a = self.model(state)[0][0:2]
-        trainable_actor = self.model.trainable_variables
-        gradient_actor = tape.gradient(a, trainable_actor)
+            a_force = self.model(state)[0][0]
+        trainable_actor_force = self.model.trainable_variables
+        gradient_actor_force = tape.gradient(a_force, trainable_actor_force)
+
+        with tf.GradientTape() as tape:
+            a_angle = self.model(state)[0][1]
+        trainable_actor_angle = self.model.trainable_variables
+        gradient_actor_angle = tape.gradient(a_angle, trainable_actor_angle)
         
-        return v, gradient_critic, trainable_critic, a, gradient_actor, trainable_actor
+        return v, gradient_critic, trainable_critic, \
+               a_force, gradient_actor_force, trainable_actor_force, \
+               a_angle, gradient_actor_angle, trainable_actor_angle
 
     def update_weights(self, step_size, gradients, trainable):
         step_size = -step_size # For Adam. update_weights(+) -> Ascent
@@ -98,58 +107,69 @@ class Network:
 
         I = 1.0 #math.pow(gamma, ex.step_in_ep)
 
-        v0, gradient_critic, trainable_critic, a0, gradient_actor, trainable_actor = self.calculate_gradients(s0)
+        v0, gradient_critic, trainable_critic, \
+        a_force, gradient_actor_force, trainable_actor_force, \
+        a_angle, gradient_actor_angle, trainable_actor_angle = self.calculate_gradients(s0)
         v1 = self.model(s1)[0][2]
         if ex.next_terminal:
             v1 = 0.0
 
         results.v0.append(v0)
         results.v1.append(v0)
-        results.a.append(a0)
+        results.a_force.append(a_force)
+        results.a_angle.append(a_angle)
 
 
         d = ex.r1 + gamma * v1 - v0
         step = d * alpha * I
         self.update_weights(float(step), gradient_critic, trainable_critic)
 
+        def update_action_weights(ex_a, a, gradients, trainables):
 
-        sig = self.settings.statistics.sigma
-        in_e = -0.5 * np.dot((ex.a0 - a0), (ex.a0 - a0) ) * sig
-        density = 1.0 / (2.0 * math.pi * sig) * math.exp(in_e)
-        integration_width = 2 * math.pi * sig * 0.1
-        prob = integration_width * density
+            sig = self.settings.statistics.sigma
+            in_e = -0.5 * float(ex_a - a) * float(ex_a - a) * sig
+            density = 1.0 / (2.0 * math.pi * sig) * math.exp(in_e)
+            integration_width = 2 * math.pi * sig * 0.1
+            prob = integration_width * density
 
-        # Step = alpha * delta * I * ln(grad(prob)
-        #      = alpha * delta * I * grad(prob) / prob
-        # Grad(prob) = d-prob/d-weights
-        #            = d-prob/d-u * d-u/d-weights
-        #            = d-prob/d-density * d-density/d-u * d-u/d-weights
-        # d-u/d-weights <- Keras gradient update
+            # Step = alpha * delta * I * ln(grad(prob)
+            #      = alpha * delta * I * grad(prob) / prob
+            # Grad(prob) = d-prob/d-weights
+            #            = d-prob/d-u * d-u/d-weights
+            #            = d-prob/d-density * d-density/d-u * d-u/d-weights
+            # d-u/d-weights <- Keras gradient update
 
-        d_prob_wrt_density = integration_width
-        mat_factor = 1.0/(sig)
-        d_density_wrt_u = -0.5 * mat_factor * (ex.a0 - a0) * prob
-        d_density_wrt_u = float(d_density_wrt_u[0] + d_density_wrt_u[1])
+            d_prob_wrt_density = integration_width
+            mat_factor = 1.0/(sig)
+            d_density_wrt_u = -0.5 * mat_factor * (ex_a - a) * prob
+            d_density_wrt_u = d_density_wrt_u
 
-        actor_step = d * alpha * I * d_prob_wrt_density * d_density_wrt_u
-        self.update_weights(float(actor_step), gradient_actor, trainable_actor)
+            actor_step = d * alpha * I * d_prob_wrt_density * d_density_wrt_u
+            self.update_weights(float(actor_step), gradients, trainables)
+    
+        update_action_weights(ex.a_force, a_force, gradient_actor_force, trainable_actor_force)
+        update_action_weights(ex.a_angle, a_angle, gradient_actor_angle, trainable_actor_angle)
 
 
         v0 = self.model(s0)[0][2]
         v1 = self.model(s1)[0][2]
         a = self.model(s0)[0][0:2]
+        a_force = a[0]
+        a_angle = a[1]
 
         results.v0.append(v0)
         results.v1.append(v0)
-        results.a.append(a)
+        results.a_force.append(a_force)
+        results.a_angle.append(a_angle)
     
         return results
 
     def no_network_change(self, results, lim):
-        da = np.linalg.norm(results.a[0] - results.a[1], 2)
+        da_force = results.a_force[0] - results.a_force[1]
+        da_angle = results.a_angle[0] - results.a_angle[1]
         dv = results.v0[1] - results.v0[0]
 
-        if (math.fabs(dv) + math.fabs(da)) < lim:
+        if (math.fabs(dv) + math.fabs(da_force) + math.fabs(da_angle)) < lim:
             return True
 
         return False
@@ -174,7 +194,9 @@ class Network:
                     exit()
                 if tf.math.is_nan(result.v1[i]):
                     exit()
-                if tf.math.is_nan(result.a[i][0]) or tf.math.is_nan(result.a[i][1]):
+                if tf.math.is_nan(result.a_force[i]):
+                    exit()
+                if tf.math.is_nan(result.a_angle[i]):
                     exit()
             results.append(result)
 

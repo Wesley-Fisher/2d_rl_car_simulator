@@ -38,13 +38,13 @@ class TestNetworkBasics(unittest.TestCase):
         s0 = np.array(s0).reshape((1,len(s0)))
         
         # Positive Change
-        v0, gradient_critic, trainable_critic, _, _, _ = net.calculate_gradients(s0)
+        v0, gradient_critic, trainable_critic, _, _, _, _, _, _ = net.calculate_gradients(s0)
         net.update_weights(1e-3, gradient_critic, trainable_critic)
         v1 = net.model(s0)[0][2]
         self.assertTrue(float(v1) - float(v0) > 0.0)
 
         # Negative Change
-        v0, gradient_critic, trainable_critic, _, _, _ = net.calculate_gradients(s0)
+        v0, gradient_critic, trainable_critic, _, _, _, _, _, _ = net.calculate_gradients(s0)
         net.update_weights(-1e-3, gradient_critic, trainable_critic)
         v1 = net.model(s0)[0][2]
         self.assertTrue(float(v1) - float(v0) < 0.0)
@@ -63,18 +63,16 @@ class TestNetworkBasics(unittest.TestCase):
         s0 = np.array(s0).reshape((1,len(s0)))
         
         # Positive Change
-        _, _, _, a0, gradient_actor, trainable_actor = net.calculate_gradients(s0)
+        _, _, _, a0, gradient_actor, trainable_actor, _, _, _ = net.calculate_gradients(s0)
         net.update_weights(1e-3, gradient_actor, trainable_actor)
-        a1 = net.model(s0)[0][0:2]
-        self.assertTrue(float(a1[0]) - float(a0[0]) > 0.0)
-        self.assertTrue(float(a1[1]) - float(a0[1]) > 0.0)
+        a1 = net.model(s0)[0][0]
+        self.assertTrue(float(a1) - float(a0) > 0.0)
 
         # Negative Change
-        _, _, _, a0, gradient_actor, trainable_actor = net.calculate_gradients(s0)
+        _, _, _, a0, gradient_actor, trainable_actor, _, _, _ = net.calculate_gradients(s0)
         net.update_weights(-1e-3, gradient_actor, trainable_actor)
-        a1 = net.model(s0)[0][0:2]
-        self.assertTrue(float(a1[0]) - float(a0[0]) < 0.0)
-        self.assertTrue(float(a1[1]) - float(a0[1]) < 0.0)
+        a1 = net.model(s0)[0][0]
+        self.assertTrue(float(a1) - float(a0) < 0.0)
 
     def test_gradient_ascent_critic(self):
         settings = Settings()
@@ -90,7 +88,7 @@ class TestNetworkBasics(unittest.TestCase):
         s0 = np.array(s0).reshape((1,len(s0)))
         
         for i in range(0, 25):
-            v0, gradient_critic, train_critic, _, _, _ = net.calculate_gradients(s0)
+            v0, gradient_critic, train_critic, _, _, _, _, _, _ = net.calculate_gradients(s0)
             net.update_weights(1e-4, gradient_critic, train_critic)
             v1 = net.model(s0)[0][2]
             self.assertTrue(float(v1) - float(v0) > 0.0)
