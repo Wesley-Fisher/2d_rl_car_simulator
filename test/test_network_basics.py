@@ -9,14 +9,17 @@ from rl_car_simulator.physics_engine import PhysicsEngine
 from rl_car_simulator.world import World
 from rl_car_simulator.world_creation import WorldCreation
 from rl_car_simulator.car import Car, CarState, CarStepExperience
-
+from rl_car_simulator.experience_preprocessor import ExperiencePreprocessor
+from rl_car_simulator.experience_engine import ExperienceEngine
 
 class TestNetworkBasics(unittest.TestCase):
 
     def test_smoke(self):
         settings = Settings()
         world = WorldCreation(settings).get()
-        physics = PhysicsEngine(settings, world)
+        preprocessor = ExperiencePreprocessor(settings)
+        experience = ExperienceEngine(settings, world, preprocessor)
+        physics = PhysicsEngine(settings, world, experience)
         null_state = physics.get_car_state(Car(settings, CarState()))
         net = Network(settings, len(null_state))
         self.assertTrue(True)
@@ -24,7 +27,9 @@ class TestNetworkBasics(unittest.TestCase):
     def test_update_weights_critic(self):
         settings = Settings()
         world = WorldCreation(settings).get()
-        physics = PhysicsEngine(settings, world)
+        preprocessor = ExperiencePreprocessor(settings)
+        experience = ExperienceEngine(settings, world, preprocessor)
+        physics = PhysicsEngine(settings, world, experience)
         cs = CarState()
         car = Car(settings, cs)
         s0 = physics.get_car_state(car)
@@ -47,7 +52,9 @@ class TestNetworkBasics(unittest.TestCase):
     def test_update_weights_actor(self):
         settings = Settings()
         world = WorldCreation(settings).get()
-        physics = PhysicsEngine(settings, world)
+        preprocessor = ExperiencePreprocessor(settings)
+        experience = ExperienceEngine(settings, world, preprocessor)
+        physics = PhysicsEngine(settings, world, experience)
         cs = CarState()
         car = Car(settings, cs)
         s0 = physics.get_car_state(car)
@@ -72,7 +79,9 @@ class TestNetworkBasics(unittest.TestCase):
     def test_gradient_ascent_critic(self):
         settings = Settings()
         world = WorldCreation(settings).get()
-        physics = PhysicsEngine(settings, world)
+        preprocessor = ExperiencePreprocessor(settings)
+        experience = ExperienceEngine(settings, world, preprocessor)
+        physics = PhysicsEngine(settings, world, experience)
         cs = CarState()
         car = Car(settings, cs)
         s0 = physics.get_car_state(car)

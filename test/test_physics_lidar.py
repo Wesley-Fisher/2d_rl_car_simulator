@@ -7,6 +7,8 @@ from rl_car_simulator.car import Car, CarState
 from rl_car_simulator.settings import Settings
 from rl_car_simulator.world import World
 from rl_car_simulator.physics_engine import PhysicsEngine
+from rl_car_simulator.experience_preprocessor import ExperiencePreprocessor
+from rl_car_simulator.experience_engine import ExperienceEngine
 
 
 class TestLidarBasic(unittest.TestCase):
@@ -14,7 +16,9 @@ class TestLidarBasic(unittest.TestCase):
     def test_smoke(self):
         settings = Settings()
         world = World(settings)
-        pe = PhysicsEngine(settings, world)
+        preprocessor = ExperiencePreprocessor(settings)
+        experience = ExperienceEngine(settings, world, preprocessor)
+        pe = PhysicsEngine(settings, world, experience)
         car_state = CarState()
         car = Car(settings, car_state)
 
@@ -22,7 +26,9 @@ class TestLidarBasic(unittest.TestCase):
         settings = Settings()
         world = World(settings)
         world.walls.append(Wall(((10,-5),(10,5))))
-        pe = PhysicsEngine(settings, world)
+        preprocessor = ExperiencePreprocessor(settings)
+        experience = ExperienceEngine(settings, world, preprocessor)
+        pe = PhysicsEngine(settings, world, experience)
         car_state = CarState()
         car_state.x = 0.0
         car_state.y = 0.0
@@ -37,7 +43,9 @@ class TestLidarBasic(unittest.TestCase):
         world = World(settings)
         world.walls.append(Wall(((10,-5),(10,5))))
         world.walls.append(Wall(((11,-5),(11,5))))
-        pe = PhysicsEngine(settings, world)
+        preprocessor = ExperiencePreprocessor(settings)
+        experience = ExperienceEngine(settings, world, preprocessor)
+        pe = PhysicsEngine(settings, world, experience)
         car_state = CarState()
         car_state.x = 0.0
         car_state.y = 0.0
@@ -52,7 +60,9 @@ class TestLidarBasic(unittest.TestCase):
         world = World(settings)
         world.walls.append(Wall(((10,-5),(10,5))))
         world.walls.append(Wall(((-5,-5),(-5,5))))
-        pe = PhysicsEngine(settings, world)
+        preprocessor = ExperiencePreprocessor(settings)
+        experience = ExperienceEngine(settings, world, preprocessor)
+        pe = PhysicsEngine(settings, world, experience)
         car_state = CarState()
         car_state.x = 0.0
         car_state.y = 0.0
@@ -66,7 +76,9 @@ class TestLidarBasic(unittest.TestCase):
         settings = Settings()
         world = World(settings)
         world.walls.append(Wall(((8,-5),(12,5))))
-        pe = PhysicsEngine(settings, world)
+        preprocessor = ExperiencePreprocessor(settings)
+        experience = ExperienceEngine(settings, world, preprocessor)
+        pe = PhysicsEngine(settings, world, experience)
         car_state = CarState()
         car_state.x = 0.0
         car_state.y = 0.0
@@ -82,7 +94,9 @@ class TestLidarBasic(unittest.TestCase):
         L = 10.0
         ang = 0.2
         world.walls.append(Wall(((L,-5),(L,5))))
-        pe = PhysicsEngine(settings, world)
+        preprocessor = ExperiencePreprocessor(settings)
+        experience = ExperienceEngine(settings, world, preprocessor)
+        pe = PhysicsEngine(settings, world, experience)
         car_state = CarState()
         car_state.x = 0.0
         car_state.y = 0.0
@@ -98,7 +112,9 @@ class TestLidarBasic(unittest.TestCase):
         L = 10.0
         ang = 0.2
         world.walls.append(Wall(((L,-5),(L,5))))
-        pe = PhysicsEngine(settings, world)
+        preprocessor = ExperiencePreprocessor(settings)
+        experience = ExperienceEngine(settings, world, preprocessor)
+        pe = PhysicsEngine(settings, world, experience)
         car_state = CarState()
         car_state.x = 0.0
         car_state.y = 0.0
