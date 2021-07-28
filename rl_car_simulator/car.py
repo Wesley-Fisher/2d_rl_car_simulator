@@ -58,6 +58,22 @@ class Car:
             corners.append(corner)
         return corners
 
+    def get_windshield_corners(self):
+        dl = self.settings.car_properties.length * 0.5
+        dw = self.settings.car_properties.width * 0.5
+
+        R = self.util.rot(self.state.h)
+        c = self.get_center()
+        side = 0.85
+        front = 0.85
+        back = 0.3
+        corners = []
+        for lr, fb in [(side, front),(side, back),(-side, back),(-side, front)]:
+            delta = np.array([[fb*dl], [lr*dw]])
+            corner = c + np.dot(R, delta)
+            corners.append(corner)
+        return corners
+
     def set_controls(self, controls):
         self.controls = controls
 

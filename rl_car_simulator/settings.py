@@ -23,7 +23,7 @@ class GraphicsSettings:
 
 class InitialCarSettings:
     def __init__(self):
-        self.keyboard_cars = 0
+        self.keyboard_cars = 1
         self.network_cars = 1
         self.random_cars = 2
 

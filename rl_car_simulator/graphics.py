@@ -82,10 +82,17 @@ class Graphics:
         return base_frame
 
     def draw_car(self, frame, car, color):
+        # Car Body
         corners = car.get_corners()
         corners = np.concatenate(corners, axis=1).T
         corners = (corners * self.settings.graphics.pixels_per_m).astype(np.int32)
         cv2.fillPoly(frame, [corners], color)
+
+        # Windshield
+        corners = car.get_windshield_corners()
+        corners = np.concatenate(corners, axis=1).T
+        corners = (corners * self.settings.graphics.pixels_per_m).astype(np.int32)
+        cv2.fillPoly(frame, [corners], (0,0,0))
 
     def show_current_world(self):
         frame = self.create_current_frame(copy.copy(self.base_world_frame))
