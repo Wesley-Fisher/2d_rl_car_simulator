@@ -66,12 +66,12 @@ class RandomController(Controller):
         self.reset()
 
     def reset(self):
-        self.a = random.uniform(-1, 1)
-        self.f = random.uniform(-1, 1)
+        self.a = random.uniform(-2, 2)
+        self.f = random.uniform(-2, 2)
     
     def get_controls(self, state):
-        self.a = self.a + random.gauss(0, 1e-2)
-        self.f = self.f + random.gauss(0, 1e-2)
+        self.a = self.a + random.gauss(0, 0.5 * self.settings.physics.control_timestep)
+        self.f = self.f + random.gauss(0, 0.5 * self.settings.physics.control_timestep)
         return CarControls(self.f, self.a)
 
 class Controllers:
