@@ -11,7 +11,7 @@ from .world_creation import WorldCreation
 from .physics_engine import PhysicsEngine
 from .network import Network
 from .car import Car, CarState
-from .controllers import KeyboardController, NetworkController, Controllers
+from .controllers import KeyboardController, NetworkController, RandomController, Controllers
 from .experience_engine import ExperienceEngine
 from .experience_preprocessor import ExperiencePreprocessor
 
@@ -34,7 +34,8 @@ class GameEngine:
 
         keyboard = KeyboardController(self.settings)
         network = NetworkController(self.settings, self.network)
-        self.controllers = Controllers(keyboard, network, None)
+        random = [RandomController(self.settings) for car in self.world.random_cars]
+        self.controllers = Controllers(keyboard, network, None, random)
         self.physics.set_controllers(self.controllers)
 
         

@@ -64,15 +64,19 @@ class PhysicsEngine:
 
     def controls_step(self):
         for car in self.world.keyboard_cars:
-            car.set_controls(self.controllers.keyboard.get_controls(car.sensed_state))
+            car.set_controls(self.controllers.keyboard.get_car_control(car.sensed_state))
 
         for car in self.world.network_cars:
             state = self.get_car_state(car)
-            car.set_controls(self.controllers.network.get_controls(car.sensed_state))
+            car.set_controls(self.controllers.network.get_car_control(car.sensed_state))
 
         for car in self.world.hardcoded_cars:
             state = self.get_car_state(car)
-            car.set_controls(self.controllers.hardcoded.get_controls(car.sensed_state))
+            car.set_controls(self.controllers.hardcoded.get_car_control(car.sensed_state))
+
+        for car, controller in zip(self.world.random_cars, self.controllers.random):
+            ctrl = controller.get_car_control(car.sensed_state)
+            car.set_controls(ctrl)
 
     def get_null_car_state(self):
         car = Car()
@@ -183,10 +187,18 @@ class PhysicsEngine:
 
     def handle_resets(self):
         for car in self.world.all_cars:
+            did_reset = False
+
             if car.reached_goal:
                 self.new_goal(car)
                 car.reached_goal = False
+                did_reset = True
             elif car.collided:
                 self.respawn_car(car)
                 car.collided = False
+                did_reset = True
+
+            if did_reset and car in self.world.random_cars:
+                i = self.world.random_cars.index(car)
+                self.controllers.random[i].reset()
 

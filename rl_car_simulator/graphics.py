@@ -34,6 +34,21 @@ class Graphics:
         goal = tuple([int(g* self.settings.graphics.pixels_per_m) for g in goal])
         cv2.circle(frame, goal, color=(0,255,0), radius=25, thickness=-1)
 
+    def draw_autonomous_car(self, base_frame, car, color):
+        self.draw_car(base_frame, car, color)
+
+        curr = tuple([int(c* self.settings.graphics.pixels_per_m) for c in [car.state.x, car.state.y]])
+        goal = tuple([int(g* self.settings.graphics.pixels_per_m) for g in car.goal])
+        cv2.line(base_frame, curr, goal, color=(0,0,0), thickness=1)
+
+        if car.sensed_state is not None:
+            for ang, dist in zip(self.settings.car_properties.lidar_angles, car.lidar_state):
+                ang = ang + car.state.h
+                x = curr[0] + int(dist * math.cos(ang) * self.settings.graphics.pixels_per_m)
+                y = curr[1] + int(dist * math.sin(ang) * self.settings.graphics.pixels_per_m)
+                cv2.line(base_frame, curr, (x,y), color=(128,120,120), thickness=1)
+                cv2.circle(base_frame, (x,y), color=(255,0,255), radius=5, thickness=-1)
+
     def create_current_frame(self, base_frame):
 
         for car in self.world.keyboard_cars:
@@ -42,6 +57,12 @@ class Graphics:
             goal = tuple([int(g* self.settings.graphics.pixels_per_m) for g in car.goal])
             cv2.circle(base_frame, goal, color=(0,215,255), radius=10, thickness=-1)
 
+        for car in self.world.network_cars:
+            self.draw_autonomous_car(base_frame, car, (0,0,255))
+        for car in self.world.random_cars:
+            self.draw_autonomous_car(base_frame, car, (100,100,155))
+
+        '''
         for car in self.world.network_cars:
             self.draw_car(base_frame, car, (0,0,255))
             
@@ -56,6 +77,7 @@ class Graphics:
                     y = curr[1] + int(dist * math.sin(ang) * self.settings.graphics.pixels_per_m)
                     cv2.line(base_frame, curr, (x,y), color=(128,120,120), thickness=1)
                     cv2.circle(base_frame, (x,y), color=(255,0,255), radius=5, thickness=-1)
+        '''
 
         return base_frame
 

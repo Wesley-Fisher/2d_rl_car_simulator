@@ -8,6 +8,7 @@ class World:
         self.keyboard_cars = []
         self.network_cars = []
         self.hardcoded_cars = []
+        self.random_cars = []
 
         self.walls = []
 
@@ -18,6 +19,10 @@ class World:
     def add_network_car(self, car):
         self.all_cars.append(car)
         self.network_cars.append(car)
+
+    def add_random_car(self, car):
+        self.all_cars.append(car)
+        self.random_cars.append(car)
 
     def add_wall(self, wall):
         self.walls.append(wall)

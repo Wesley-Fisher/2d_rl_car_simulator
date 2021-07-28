@@ -6,11 +6,16 @@ from .car import CarControls
 
 class Controller:
     def __init__(self, settings):
-        pass
+        self.settings = settings
 
     def get_controls(self, state):
         raise NotImplementedError
 
+    def get_car_control(self, state):
+        control = self.get_controls(state)
+        control.force = min(max(control.force, -self.settings.keyboard.force), self.settings.keyboard.force)
+        control.steer = min(max(control.steer, -self.settings.keyboard.angle), self.settings.keyboard.angle)
+        return control
 
 class KeyboardController(Controller):
     def __init__(self, settings):
@@ -53,9 +58,26 @@ class HardCodedController(Controller):
     def get_controls(self, state):
         return CarControls(self.f, self.a)
 
+class RandomController(Controller):
+    def __init__(self, settings):
+        self.settings = settings
+        self.a = 0.0
+        self.f = 0.0
+        self.reset()
+
+    def reset(self):
+        self.a = random.uniform(-1, 1)
+        self.f = random.uniform(-1, 1)
+    
+    def get_controls(self, state):
+        self.a = self.a + random.gauss(0, 1e-2)
+        self.f = self.f + random.gauss(0, 1e-2)
+        return CarControls(self.f, self.a)
+
 class Controllers:
-    def __init__(self, keyboard, network, hardcoded):
+    def __init__(self, keyboard, network, hardcoded, random):
         self.keyboard = keyboard
         self.network = network
         self.hardcoded = hardcoded
+        self.random = random
 
