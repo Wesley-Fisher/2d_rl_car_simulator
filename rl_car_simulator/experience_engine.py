@@ -63,16 +63,19 @@ class ExperienceEngine:
     def handle_episode_ends(self):
         for car in self.world.all_cars:
             if car.reached_goal:
-                self.preprocessor.new_experience(car.episode_steps)
-                car.episode_steps = []
                 print("Reached Goal - step %d" % len(car.episode_steps))
-            elif car.collided:
                 self.preprocessor.new_experience(car.episode_steps)
                 car.episode_steps = []
+                
+            elif car.collided:
                 print("Collided - step %d" % len(car.episode_steps))
+                self.preprocessor.new_experience(car.episode_steps)
+                car.episode_steps = []
 
             l = self.settings.learning.max_episode_length
             if l > 0 and len(car.episode_steps) > l:
+                print("Episode limit %d" % l)
                 self.preprocessor.new_experience(car.episode_steps)
                 car.episode_steps = []
-                print("Episode limit %d" % l)
+                car.too_old = True
+                

@@ -33,7 +33,8 @@ class Car:
         self.lidar_state = None
 
         self.collided = False
-        self.reached_goal = True
+        self.reached_goal = False
+        self.too_old = False
 
     def get_center(self):
         c = np.array([[self.state.x],[self.state.y]])

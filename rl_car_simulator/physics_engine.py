@@ -198,6 +198,11 @@ class PhysicsEngine:
                 car.collided = False
                 did_reset = True
 
+            elif car.too_old:
+                self.respawn_car(car)
+                car.too_old = False
+                did_reset = True
+
             if did_reset and car in self.world.random_cars:
                 i = self.world.random_cars.index(car)
                 self.controllers.random[i].reset()

@@ -53,7 +53,7 @@ class Learning:
     def __init__(self):
         self.gamma = 0.9999
         self.alpha = 1e-3
-        self.max_episode_length = 50
+        self.max_episode_length = 100
 
 class Statistics:
     def __init__(self):
