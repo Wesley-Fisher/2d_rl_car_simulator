@@ -4,6 +4,13 @@ import math
 
 from .car import CarControls
 
+class ControllerTypes:
+    keyboard = "Keyboard"
+    network = "Network"
+    hardcoded = "HardCoded"
+    random = "Random"
+    feedback = "Feedback"
+
 class Controller:
     def __init__(self, settings):
         self.settings = settings
@@ -86,7 +93,7 @@ class FeedbackController(Controller):
             d_head = -2 * math.pi + d_head
         if d_head < -math.pi:
             d_head = 2 * math.pi + d_head
-        print(d_head)
+
         if abs(d_head) > 2 * dist:
             force = -0.5
             angle = 0.0

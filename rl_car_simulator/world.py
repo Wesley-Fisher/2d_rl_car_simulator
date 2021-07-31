@@ -1,5 +1,7 @@
 import random
 
+from .controllers import ControllerTypes
+
 class World:
     def __init__(self, settings):
         self.settings = settings
@@ -16,18 +18,26 @@ class World:
     def add_keyboard_car(self, car):
         self.all_cars.append(car)
         self.keyboard_cars.append(car)
+        car.set_type(ControllerTypes.keyboard)
+        car.set_name(ControllerTypes.keyboard + " " + str(len(self.keyboard_cars)))
     
     def add_network_car(self, car):
         self.all_cars.append(car)
         self.network_cars.append(car)
+        car.set_type(ControllerTypes.network)
+        car.set_name(ControllerTypes.network + " " + str(len(self.keyboard_cars)))
 
     def add_random_car(self, car):
         self.all_cars.append(car)
         self.random_cars.append(car)
+        car.set_type(ControllerTypes.random)
+        car.set_name(ControllerTypes.random + " " + str(len(self.keyboard_cars)))
 
     def add_feedback_car(self, car):
         self.all_cars.append(car)
         self.feedback_cars.append(car)
+        car.set_type(ControllerTypes.feedback)
+        car.set_name(ControllerTypes.feedback + " " + str(len(self.keyboard_cars)))
 
     def add_wall(self, wall):
         self.walls.append(wall)

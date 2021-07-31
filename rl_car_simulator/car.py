@@ -37,6 +37,9 @@ class Car:
         self.reached_goal = False
         self.too_old = False
 
+        self.type =""
+        self.name = ""
+
     def set_controller(self, controller):
         self.controller = controller
 
@@ -83,6 +86,18 @@ class Car:
 
     def get_controls(self, state):
         return self.controller.get_car_control(state)
+
+    def set_type(self, type):
+        self.type = type
+
+    def set_name(self, name):
+        self.name = name
+    
+    def get_type(self):
+        return self.type
+
+    def get_name(self):
+        return self.name
 
 
 class CarStepExperience:
