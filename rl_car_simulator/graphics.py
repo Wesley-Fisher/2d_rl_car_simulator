@@ -21,6 +21,8 @@ class Graphics:
             self.draw_wall(frame, wall)
         for goal in self.settings.world.goal_points:
             self.draw_goal(frame, goal)
+        for pt in self.settings.world.spawn_points:
+            self.draw_spawn_pt(frame, pt)
         return frame
 
     def draw_wall(self, frame, wall):
@@ -32,16 +34,22 @@ class Graphics:
 
     def draw_goal(self, frame, goal):
         goal = tuple([int(g* self.settings.graphics.pixels_per_m) for g in goal])
-        cv2.circle(frame, goal, color=(0,255,0), radius=25, thickness=-1)
+        cv2.circle(frame, goal, color=(0,255,0), radius=int(1 * self.settings.graphics.pixels_per_m), thickness=-1)
+
+    def draw_spawn_pt(self, frame, pt):
+        pt = tuple([int(g* self.settings.graphics.pixels_per_m) for g in pt])
+        cv2.circle(frame, pt, color=(150,0,150), radius=int(0.5 * self.settings.graphics.pixels_per_m), thickness=-1)
+
 
     def draw_autonomous_car(self, base_frame, car, color):
         self.draw_car(base_frame, car, color)
 
-        curr = tuple([int(c* self.settings.graphics.pixels_per_m) for c in [car.state.x, car.state.y]])
-        goal = tuple([int(g* self.settings.graphics.pixels_per_m) for g in car.goal])
-        cv2.line(base_frame, curr, goal, color=(0,0,0), thickness=1)
+        if self.settings.graphics.draw_goals:
+            curr = tuple([int(c* self.settings.graphics.pixels_per_m) for c in [car.state.x, car.state.y]])
+            goal = tuple([int(g* self.settings.graphics.pixels_per_m) for g in car.goal])
+            cv2.line(base_frame, curr, goal, color=(0,0,0), thickness=1)
 
-        if car.sensed_state is not None:
+        if car.sensed_state is not None and self.settings.graphics.draw_lidar:
             for ang, dist in zip(self.settings.car_properties.lidar_angles, car.lidar_state):
                 ang = ang + car.state.h
                 x = curr[0] + int(dist * math.cos(ang) * self.settings.graphics.pixels_per_m)

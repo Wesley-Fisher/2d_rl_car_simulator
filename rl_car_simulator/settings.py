@@ -48,11 +48,15 @@ class GraphicsSettings:
     def __init__(self, config):
         self.pixels_per_m = int(config.get("pixels_per_m", 10))
         self.show_ms = int(config.get("show_ms", 100))
+        self.draw_lidar = bool(config.get("draw_lidar", False))
+        self.draw_goals = bool(config.get("draw_goals", True))
     
     def write(self):
         config = {}
         config["pixels_per_m"] = self.pixels_per_m
         config["show_ms"] = self.show_ms
+        config["draw_lidar"] = self.draw_lidar
+        config["draw_goals"] = self.draw_goals
         return config
 
 class InitialCarSettings:
