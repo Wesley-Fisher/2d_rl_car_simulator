@@ -227,7 +227,7 @@ class Network:
         return num_rem
 
     def save_state(self):
-        memory_dir = self.settings.files.root_dir + "/memory"
+        memory_dir = self.settings._files.root_dir + "/memory"
         exp_file = memory_dir + "/experience.pk"
         with open(exp_file, 'wb') as handle:
             pk.dump(self.training_experience, handle)
@@ -237,7 +237,7 @@ class Network:
         self.model.save(network_file)
 
     def load_state(self):
-        memory_dir = self.settings.files.root_dir + "/memory"
+        memory_dir = self.settings._files.root_dir + "/memory"
 
         if self.settings.memory.load_saved_network:
             network_file = memory_dir + "/model.h5"
