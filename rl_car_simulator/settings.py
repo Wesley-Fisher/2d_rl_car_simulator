@@ -137,10 +137,12 @@ class Physics:
 class Preprocessing:
     def __init__(self, config):
         self.gamma = float(config.get("gamma", 0.9))
+        self.use_types = config.get("use_types", ["Feedback", "Keyboard"])
     
     def write(self):
         config = {}
         config["gamma"] = self.gamma
+        config["use_types"] = self.use_types
         return config
 
 class Learning:

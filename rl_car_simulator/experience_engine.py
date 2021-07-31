@@ -80,7 +80,7 @@ class ExperienceEngine:
                 car.too_old = True
 
             if done:
-                self.preprocessor.new_experience(car.episode_steps)
+                self.preprocessor.new_experience(car.episode_steps, car.get_type)
                 car.episode_steps = []
                 
                 

@@ -25,19 +25,19 @@ class World:
         self.all_cars.append(car)
         self.network_cars.append(car)
         car.set_type(ControllerTypes.network)
-        car.set_name(ControllerTypes.network + " " + str(len(self.keyboard_cars)))
+        car.set_name(ControllerTypes.network + " " + str(len(self.network_cars)))
 
     def add_random_car(self, car):
         self.all_cars.append(car)
         self.random_cars.append(car)
         car.set_type(ControllerTypes.random)
-        car.set_name(ControllerTypes.random + " " + str(len(self.keyboard_cars)))
+        car.set_name(ControllerTypes.random + " " + str(len(self.random_cars)))
 
     def add_feedback_car(self, car):
         self.all_cars.append(car)
         self.feedback_cars.append(car)
         car.set_type(ControllerTypes.feedback)
-        car.set_name(ControllerTypes.feedback + " " + str(len(self.keyboard_cars)))
+        car.set_name(ControllerTypes.feedback + " " + str(len(self.feedback_cars)))
 
     def add_wall(self, wall):
         self.walls.append(wall)

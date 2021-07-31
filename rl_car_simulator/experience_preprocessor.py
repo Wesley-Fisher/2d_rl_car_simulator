@@ -17,8 +17,9 @@ class ExperiencePreprocessor:
 
         self.experience_queue = []
 
-    def new_experience(self, exp):
-        self.experience_queue.append(exp)
+    def new_experience(self, exp, type):
+        if type in self.settings.preprocessing.use_types:
+            self.experience_queue.append(exp)
 
     def preprocess_episode(self, exp):
         #print("Adding episode with %d steps" % len(exp))
