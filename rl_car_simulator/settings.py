@@ -63,13 +63,15 @@ class InitialCarSettings:
     def __init__(self, config):
         self.keyboard_cars = min(1, int(config.get("keyboard_cars",0)))
         self.network_cars = int(config.get("network_cars", 1))
-        self.random_cars = int(config.get("random_cars", 1))
+        self.random_cars = int(config.get("random_cars", 0))
+        self.feedback_cars = int(config.get("feedback_cars", 1))
     
     def write(self):
         config = {}
         config["keyboard_cars"] = self.keyboard_cars
         config["network_cars"] = self.network_cars
         config["random_cars"] = self.random_cars
+        config["feedback_cars"] = self.feedback_cars
         return config
 
 class CarProperties:
@@ -78,7 +80,7 @@ class CarProperties:
         self.width = float(config.get("width", 1.8))
         self.mass = float(config.get("mass", 1.0))
         self.fric = float(config.get("fric", 1.0))
-        def_lidar_angles = [0.0, 0.5, -0.5]
+        def_lidar_angles = [-0.5, 0.0, 0.5]
         lidar_angles = config.get("lidar_angles", def_lidar_angles)
         self.lidar_angles = [float(a) for a in lidar_angles]
 
@@ -100,6 +102,25 @@ class Keyboard:
         config = {}
         config["angle"] = self.angle
         config["force"] = self.force
+        return config
+
+class FeedbackCar:
+    def __init__(self, config):
+        self.left_lidars = [int(x) for x in config.get("left_lidars", [0])]
+        self.front_lidars = [int(x) for x in config.get("front_lidars", [1])]
+        self.right_lidars = [int(x) for x in config.get("right_lidars", [2])]
+        self.force = float(config.get("force", 3.0))
+        self.close = float(config.get("close", 5.0))
+        self.k = float(config.get("k", 0.25))
+    
+    def write(self):
+        config = {}
+        config["left_lidars"] = self.left_lidars
+        config["front_lidars"] = self.front_lidars
+        config["right_lidars"] = self.right_lidars
+        config["force"] = self.force
+        config["close"] = self.close
+        config["k"] = self.k
         return config
 
 class Physics:
@@ -229,6 +250,7 @@ class Settings:
         self.initial_car_settings = InitialCarSettings(config.get("init_car", {}))
         self.car_properties = CarProperties(config.get("car_properties", {}))
         self.keyboard = Keyboard(config.get("keyboard", {}))
+        self.feedback_car = FeedbackCar(config.get("feedback_car", {}))
         self.physics = Physics(config.get("physics", {}))
         self.walls = Walls(self.world, config.get("walls", {}))
         self.preprocessing = Preprocessing(config.get("preprocessing", {}))
@@ -246,6 +268,7 @@ class Settings:
         config["application"] = self.application.write()
         config["init_car"] = self.car_properties.write()
         config["keyboard"] = self.keyboard.write()
+        config["feedback_car"] = self.feedback_car.write()
         config["physics"] = self.physics.write()
         config["walls"] = self.walls.write()
         config["preprocessing"] = self.preprocessing.write()

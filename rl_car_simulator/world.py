@@ -9,6 +9,7 @@ class World:
         self.network_cars = []
         self.hardcoded_cars = []
         self.random_cars = []
+        self.feedback_cars = []
 
         self.walls = []
 
@@ -23,6 +24,10 @@ class World:
     def add_random_car(self, car):
         self.all_cars.append(car)
         self.random_cars.append(car)
+
+    def add_feedback_car(self, car):
+        self.all_cars.append(car)
+        self.feedback_cars.append(car)
 
     def add_wall(self, wall):
         self.walls.append(wall)

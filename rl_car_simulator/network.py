@@ -60,7 +60,7 @@ class Network:
         self.frozen_model = self.model
     
     def get(self, x):
-        x = x.reshape((1,8))
+        x = x.reshape((1,self.N))
         return self.frozen_model.predict(x)
     
     def add_experience(self, exp):

@@ -74,10 +74,61 @@ class RandomController(Controller):
         self.f = self.f + random.gauss(0, 0.5 * self.settings.physics.control_timestep)
         return CarControls(self.f, self.a)
 
+class FeedbackController(Controller):
+    def __init__(self, settings):
+        self.settings = settings
+    
+    def get_controls(self, state):
+        dist = state[3]
+        d_head = state[4] - state[2]
+
+        if d_head > math.pi:
+            d_head = -2 * math.pi + d_head
+        if d_head < -math.pi:
+            d_head = 2 * math.pi + d_head
+        print(d_head)
+        if abs(d_head) > 2 * dist:
+            force = -0.5
+            angle = 0.0
+            return CarControls(force, angle)
+
+        force = self.settings.feedback_car.force
+        angle = self.settings.feedback_car.k * d_head
+
+        def close(lidars):
+            for i in lidars:
+                d = state[5 + i] # Base state + index of lidar
+                if d < self.settings.feedback_car.close:
+                    return True
+        
+        left = close(self.settings.feedback_car.left_lidars)
+        front = close(self.settings.feedback_car.front_lidars)
+        right = close(self.settings.feedback_car.right_lidars)
+
+        if left:
+            angle = 0.5
+        if right:
+            angle = -0.5
+        if front:
+            if left:
+                angle = 0.5
+            else:
+                angle = -0.5
+        
+        if left and front and right:
+            dl = state[5 + self.settings.feedback_car.left_lidars[0]]
+            dr = state[5 + self.settings.feedback_car.right_lidars[0]]
+            angle = dr - dl
+            force = -2
+
+        return CarControls(force, angle)
+
+
 class Controllers:
-    def __init__(self, keyboard, network, hardcoded, random):
+    def __init__(self, keyboard, network, hardcoded, random, feedback):
         self.keyboard = keyboard
         self.network = network
         self.hardcoded = hardcoded
         self.random = random
+        self.feedback = feedback
 
