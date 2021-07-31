@@ -149,7 +149,9 @@ class Walls:
         self.outer_walls = [wall_upper, wall_lower, wall_left, wall_right]
 
         # x1y1x2y2
-        def_walls = [{"x1": 20, "y1": 10,"x2": 20, "y2": 15}]
+        def_walls = [{"x1": 20, "y1": 10,"x2": 20, "y2": 15},
+                     {"x1": 10, "y1": 25,"x2": 15, "y2": 25},
+                     {"x1": 30, "y1": 40,"x2": 40, "y2": 30}]
         walls = config.get("walls", def_walls)
         proc_walls = []
         print(walls)
