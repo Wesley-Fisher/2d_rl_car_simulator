@@ -22,6 +22,7 @@ class Car:
         self.settings = settings
         self.state = state
         self.controls = CarControls(0.0, 0.0)
+        self.controller = None
 
         self.util = Utility()
         self.episode_steps = []
@@ -35,6 +36,9 @@ class Car:
         self.collided = False
         self.reached_goal = False
         self.too_old = False
+
+    def set_controller(self, controller):
+        self.controller = controller
 
     def get_center(self):
         c = np.array([[self.state.x],[self.state.y]])
@@ -76,6 +80,10 @@ class Car:
 
     def set_controls(self, controls):
         self.controls = controls
+
+    def get_controls(self, state):
+        return self.controller.get_car_control(state)
+
 
 class CarStepExperience:
     def __init__(self):

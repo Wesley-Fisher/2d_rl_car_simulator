@@ -16,6 +16,18 @@ class PhysicsEngine:
     def set_controllers(self, controllers):
         self.controllers = controllers
 
+        for car in self.world.keyboard_cars:
+            car.set_controller(self.controllers.keyboard)
+
+        for car in self.world.network_cars:
+            car.set_controller(self.controllers.network)
+        
+        for car in self.world.hardcoded_cars:
+            car.set_controller(self.controllers.hardcoded)
+        
+        for car, controller in zip(self.world.random_cars, self.controllers.random):
+            car.set_controller(controller)
+
     def full_control_sensor_step(self):
         self.sensors_step()
         self.experience.sample_end_states()
@@ -63,6 +75,11 @@ class PhysicsEngine:
             car.sensed_state = state
 
     def controls_step(self):
+        for car in self.world.all_cars:
+            state = car.sensed_state
+            control = car.get_controls(state)
+            car.set_controls(control)
+        '''
         for car in self.world.keyboard_cars:
             car.set_controls(self.controllers.keyboard.get_car_control(car.sensed_state))
 
@@ -77,6 +94,7 @@ class PhysicsEngine:
         for car, controller in zip(self.world.random_cars, self.controllers.random):
             ctrl = controller.get_car_control(car.sensed_state)
             car.set_controls(ctrl)
+        '''
 
     def get_null_car_state(self):
         car = Car()

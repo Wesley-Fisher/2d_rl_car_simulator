@@ -63,7 +63,7 @@ class InitialCarSettings:
     def __init__(self, config):
         self.keyboard_cars = min(1, int(config.get("keyboard_cars",0)))
         self.network_cars = int(config.get("network_cars", 1))
-        self.random_cars = int(config.get("random_cars", 0))
+        self.random_cars = int(config.get("random_cars", 1))
     
     def write(self):
         config = {}
