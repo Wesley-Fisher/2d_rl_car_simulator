@@ -14,6 +14,7 @@ from .car import Car, CarState
 from .controllers import FeedbackController, KeyboardController, NetworkController, RandomController, Controllers
 from .experience_engine import ExperienceEngine
 from .experience_preprocessor import ExperiencePreprocessor
+from .reporting import Reporting
 
 class GameEngine:
     def __init__(self, settings):
@@ -21,7 +22,8 @@ class GameEngine:
         self.settings = settings
         self.world = WorldCreation(self.settings).get()
 
-        self.experience_preprocessor = ExperiencePreprocessor(self.settings)
+        self.reporting = Reporting(self.settings)
+        self.experience_preprocessor = ExperiencePreprocessor(self.settings, self.reporting)
         self.experience = ExperienceEngine(self.settings, self.world, self.experience_preprocessor)
 
         self.graphics = Graphics(self.settings, self.world)
@@ -49,6 +51,7 @@ class GameEngine:
         self.physics_thread = threading.Thread(target=self.physics_fn)
         self.preprocess_thread = threading.Thread(target=self.preprocess_fn)
         self.training_thread = threading.Thread(target=self.training_fn)
+        self.reporting_thread = threading.Thread(target=self.reporting_fn)
 
     def run(self):
         self.kill_check_thread.start()
@@ -56,6 +59,7 @@ class GameEngine:
         self.physics_thread.start()
         self.preprocess_thread.start()
         self.training_thread.start()
+        self.reporting_thread.start()
 
         while self.running:
             time.sleep(1.0)
@@ -115,3 +119,14 @@ class GameEngine:
             print("Num Samples: %d" % stats.num_samples)
             print("Removed: %d" % num_rem)
             self.network.save_state()
+
+    def reporting_fn(self):
+        last_car_performance_time = self.util.now()
+
+        while self.running:
+            time.sleep(1.0)
+            now = self.util.now()
+
+            if now - last_car_performance_time > self.settings.reporting.car_performance_report_interval:
+                self.reporting.report_car_performance()
+                last_car_performance_time = now

@@ -12,14 +12,24 @@ class TDExperience:
         self.next_terminal = False
 
 class ExperiencePreprocessor:
-    def __init__(self, settings):
+    def __init__(self, settings, reporting):
         self.settings = settings
+        self.reporting = reporting
 
         self.experience_queue = []
 
-    def new_experience(self, exp, type):
+    def new_experience(self, exp, type, name):
+        
+        self.reporting.record_car_performance(name, self.get_total_reward(exp))
+
         if type in self.settings.preprocessing.use_types:
             self.experience_queue.append(exp)
+
+    def get_total_reward(self, exp):
+        total = 0.0
+        for ex in exp:
+            total = total + ex.r1
+        return total
 
     def preprocess_episode(self, exp):
         #print("Adding episode with %d steps" % len(exp))
@@ -44,5 +54,6 @@ class ExperiencePreprocessor:
 
             out.append(td)
             i = i + 1
+
         return out
 

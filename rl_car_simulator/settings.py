@@ -227,6 +227,17 @@ class Memory:
         config["purge_merged_exp"] = self.purge_merged_experience
         return config
 
+class Reporting:
+    def __init__(self, config):
+        self.car_performance_length = int(config.get("car_performance_length", 5))
+        self.car_performance_report_interval = float(config.get("car_performance_report_interval", 120))
+
+    def write(self):
+        config = {}
+        config["car_performance_length"] = self.car_performance_length
+        config["car_performance_report_interval"] = self.car_performance_report_interval
+        return config
+
 class Files:
     def __init__(self, root_dir):
         self.root_dir = root_dir
@@ -259,6 +270,7 @@ class Settings:
         self.learning = Learning(config.get("learning", {}))
         self.statistics = Statistics(config.get("statistics", {}))
         self.memory = Memory(config.get("memory", {}))
+        self.reporting = Reporting(config.get("reporting", {}))
 
         if save_default:
             self.write()
@@ -277,6 +289,7 @@ class Settings:
         config["learning"] = self.learning.write()
         config["statistics"] = self.statistics.write()
         config["memory"] = self.memory.write()
+        config["reporting"] = self.reporting.write()
 
         with open(self.settings_file, 'w') as handle:
             yaml.dump(config, handle)
