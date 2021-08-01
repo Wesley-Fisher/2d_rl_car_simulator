@@ -33,9 +33,10 @@ class ExperienceEngine:
                 dy1 = car.step_experience.s1[1] - car.goal[1]
                 dist_1 = dx1*dx1 + dy1*dy1
 
-                r += 0.001
-            else:
-                r += -0.01
+                if dist_1 < dist_0:
+                    r += 0.001
+                else:
+                    r += -0.01
 
         #print(r)
 
