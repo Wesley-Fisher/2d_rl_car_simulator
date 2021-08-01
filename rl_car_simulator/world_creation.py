@@ -31,6 +31,12 @@ class WorldCreation:
         for i in range(0, settings.initial_car_settings.feedback_cars):
             self.world.add_feedback_car(make_car())
 
+        for i in range(0, settings.initial_car_settings.network_exploration_cars):
+            self.world.add_network_exploration_car(make_car())
+        
+        for i in range(0, settings.initial_car_settings.feedback_exploration_cars):
+            self.world.add_feedback_exploration_car(make_car())
+
         for wall_pts in settings.walls.walls:
             w = Wall(wall_pts)
             self.world.add_wall(w)

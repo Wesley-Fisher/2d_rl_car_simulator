@@ -11,7 +11,7 @@ from .world_creation import WorldCreation
 from .physics_engine import PhysicsEngine
 from .network import Network
 from .car import Car, CarState
-from .controllers import FeedbackController, KeyboardController, NetworkController, RandomController, Controllers
+from .controllers import ExplorationController, FeedbackController, KeyboardController, NetworkController, RandomController, Controllers
 from .experience_engine import ExperienceEngine
 from .experience_preprocessor import ExperiencePreprocessor
 from .reporting import Reporting
@@ -38,7 +38,9 @@ class GameEngine:
         network = NetworkController(self.settings, self.network)
         random = [RandomController(self.settings) for car in self.world.random_cars]
         feedback = FeedbackController(self.settings)
-        self.controllers = Controllers(keyboard, network, None, random, feedback)
+        network_exploration = [ExplorationController(self.settings, network) for car in self.world.network_exploration_cars]
+        feedback_exploration = [ExplorationController(self.settings, feedback) for car in self.world.feedback_exploration_cars]
+        self.controllers = Controllers(keyboard, network, None, random, feedback, network_exploration, feedback_exploration)
         self.physics.set_controllers(self.controllers)
 
         

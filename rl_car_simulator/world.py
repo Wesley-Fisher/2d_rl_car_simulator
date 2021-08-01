@@ -12,6 +12,8 @@ class World:
         self.hardcoded_cars = []
         self.random_cars = []
         self.feedback_cars = []
+        self.network_exploration_cars = []
+        self.feedback_exploration_cars = []
 
         self.walls = []
 
@@ -38,6 +40,18 @@ class World:
         self.feedback_cars.append(car)
         car.set_type(ControllerTypes.feedback)
         car.set_name(ControllerTypes.feedback + " " + str(len(self.feedback_cars)))
+
+    def add_network_exploration_car(self, car):
+        self.all_cars.append(car)
+        self.network_exploration_cars.append(car)
+        car.set_type(ControllerTypes.network_exploration)
+        car.set_name(ControllerTypes.network_exploration + " " + str(len(self.network_exploration_cars)))
+
+    def add_feedback_exploration_car(self, car):
+        self.all_cars.append(car)
+        self.feedback_exploration_cars.append(car)
+        car.set_type(ControllerTypes.feedback_exploration)
+        car.set_name(ControllerTypes.feedback_exploration + " " + str(len(self.feedback_exploration_cars)))
 
     def add_wall(self, wall):
         self.walls.append(wall)

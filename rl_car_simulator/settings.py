@@ -65,6 +65,8 @@ class InitialCarSettings:
         self.network_cars = int(config.get("network_cars", 1))
         self.random_cars = int(config.get("random_cars", 0))
         self.feedback_cars = int(config.get("feedback_cars", 1))
+        self.network_exploration_cars = int(config.get("network_exploration_cars", 1))
+        self.feedback_exploration_cars = int(config.get("feedback_exploration_cars", 1))
     
     def write(self):
         config = {}
@@ -72,6 +74,8 @@ class InitialCarSettings:
         config["network_cars"] = self.network_cars
         config["random_cars"] = self.random_cars
         config["feedback_cars"] = self.feedback_cars
+        config["network_exploration_cars"] = self.network_exploration_cars
+        config["feedback_exploration_cars"] = self.feedback_exploration_cars
         return config
 
 class CarProperties:

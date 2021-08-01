@@ -10,6 +10,8 @@ class ControllerTypes:
     hardcoded = "HardCoded"
     random = "Random"
     feedback = "Feedback"
+    network_exploration = "NetworkExploration"
+    feedback_exploration = "FeedbackExploration"
 
 class Controller:
     def __init__(self, settings):
@@ -148,15 +150,17 @@ class ExplorationController(Controller):
         c2 = self.rnd.get_car_control(state)
 
         f = c1.force + c2.force
-        a = c1.angle + c2.angle
+        a = c1.steer + c2.steer
         return CarControls(f, a)
 
 
 class Controllers:
-    def __init__(self, keyboard, network, hardcoded, random, feedback):
+    def __init__(self, keyboard, network, hardcoded, random, feedback, network_exploration, feedback_exploration):
         self.keyboard = keyboard
         self.network = network
         self.hardcoded = hardcoded
         self.random = random
         self.feedback = feedback
+        self.network_exploration = network_exploration
+        self.feedback_exploration = feedback_exploration
 

@@ -31,6 +31,12 @@ class PhysicsEngine:
         for car in self.world.feedback_cars:
             car.set_controller(self.controllers.feedback)
 
+        for car, controller in zip(self.world.network_exploration_cars, self.controllers.network_exploration):
+            car.set_controller(controller)
+
+        for car, controller in zip(self.world.feedback_exploration_cars, self.controllers.feedback_exploration):
+            car.set_controller(controller)
+
     def full_control_sensor_step(self):
         self.sensors_step()
         self.experience.sample_end_states()
