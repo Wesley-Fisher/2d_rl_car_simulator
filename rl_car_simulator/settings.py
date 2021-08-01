@@ -233,6 +233,11 @@ class Memory:
         self.load_saved_network = bool(config.get("load_saved_net", True))
         self.merge_saved_experience = bool(config.get("merged_saved_exp", True))
         self.purge_merged_experience = bool(config.get("purge_merged_exp", False))
+        
+        self.size_train_only = int(config.get("size_train_only", -1))
+        self.size_resume_world = int(config.get("size_resume_world", 200))
+        if self.size_resume_world > self.size_train_only:
+            self.size_resume_world = self.size_train_only - 1
 
     def write(self):
         config = {}
@@ -242,6 +247,8 @@ class Memory:
         config["load_saved_net"] = self.load_saved_network
         config["merged_saved_exp"] = self.merge_saved_experience
         config["purge_merged_exp"] = self.purge_merged_experience
+        config["size_train_only"] = self.size_train_only
+        config["size_resume_world"] = self.size_resume_world
         return config
 
 class Reporting:

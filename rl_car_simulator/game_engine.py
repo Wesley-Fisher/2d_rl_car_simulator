@@ -20,6 +20,9 @@ class GameEngine:
     def __init__(self, settings):
         self.util = Utility()
         self.settings = settings
+
+        self.train_only = False
+
         self.world = WorldCreation(self.settings).get()
 
         self.reporting = Reporting(self.settings)
@@ -72,8 +75,16 @@ class GameEngine:
             if self.util.now() - self.time_start > self.settings.application.time_limit:
                 self.running = False
 
+    def wait_for_training(self):
+        waited = self.train_only
+        while self.running and self.train_only:
+            time.sleep(1.0)
+        return waited
+
     def graphics_fn(self):
         while self.running:
+            self.wait_for_training()
+
             self.graphics.show_current_world()
             self.graphics.sleep()
         self.graphics.close()
@@ -81,6 +92,8 @@ class GameEngine:
     def physics_fn(self):
         t_last_controls = self.util.now() - self.settings.physics.control_timestep*2.0
         while self.running:
+            self.wait_for_training()
+
             t_loop_start = self.util.now()
 
             if self.util.now() - t_last_controls > self.settings.physics.control_timestep:
@@ -126,6 +139,10 @@ class GameEngine:
         last_car_performance_time = self.util.now()
 
         while self.running:
+            waited = self.wait_for_training()
+            if waited:
+                last_car_performance_time = self.util.now()
+
             time.sleep(1.0)
             now = self.util.now()
 
