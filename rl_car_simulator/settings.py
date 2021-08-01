@@ -153,11 +153,13 @@ class Preprocessing:
     def __init__(self, config):
         self.gamma = float(config.get("gamma", 0.9))
         self.use_types = config.get("use_types", ["Feedback", "Keyboard"])
+        self.subsample = max(int(config.get("subsample", 2)),1)
     
     def write(self):
         config = {}
         config["gamma"] = self.gamma
         config["use_types"] = self.use_types
+        config["subsample"] = self.subsample
         return config
 
 class Learning:

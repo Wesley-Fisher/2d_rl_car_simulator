@@ -39,6 +39,7 @@ class ExperiencePreprocessor:
 
         out = []
         i = 0
+        skipped = False
         for ex in exp:
             G = self.settings.preprocessing.gamma * G + ex.r1
 
@@ -52,8 +53,16 @@ class ExperiencePreprocessor:
             td.G = G
             td.next_terminal = ( i == 0)
 
-            out.append(td)
+            if i % self.settings.preprocessing.subsample:
+                out.append(td)
+                skipped = True
+            else:
+                skipped = False
             i = i + 1
+
+        # Always keep last step (with big rewards)
+        if skipped:
+            out.append(td)
 
         return out
 
