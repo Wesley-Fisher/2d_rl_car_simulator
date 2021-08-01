@@ -66,19 +66,21 @@ class HardCodedController(Controller):
         return CarControls(self.f, self.a)
 
 class RandomController(Controller):
-    def __init__(self, settings):
+    def __init__(self, settings, bias_range=2, step=0.5):
         self.settings = settings
         self.a = 0.0
         self.f = 0.0
+        self.bias_range = bias_range
+        self.step = step
         self.reset()
 
     def reset(self):
-        self.a = random.uniform(-2, 2)
-        self.f = random.uniform(-2, 2)
+        self.a = random.uniform(-self.bias_range, self.bias_range)
+        self.f = random.uniform(-self.bias_range, self.bias_range)
     
     def get_controls(self, state):
-        self.a = self.a + random.gauss(0, 0.5 * self.settings.physics.control_timestep)
-        self.f = self.f + random.gauss(0, 0.5 * self.settings.physics.control_timestep)
+        self.a = self.a + random.gauss(0, self.step * self.settings.physics.control_timestep)
+        self.f = self.f + random.gauss(0, self.step * self.settings.physics.control_timestep)
         return CarControls(self.f, self.a)
 
 class FeedbackController(Controller):
@@ -129,6 +131,25 @@ class FeedbackController(Controller):
             force = -2
 
         return CarControls(force, angle)
+
+
+class ExplorationController(Controller):
+    def __init__(self, settings, base):
+        self.settings = settings
+        self.base = base
+        self.rnd = RandomController(settings, self.settings.exploration.bias_range,
+                                              self.settings.exploration.step)
+
+    def reset(self):
+        self.rnd.reset
+
+    def get_car_control(self, state):
+        c1 = self.base.get_car_control(state)
+        c2 = self.rnd.get_car_control(state)
+
+        f = c1.force + c2.force
+        a = c1.angle + c2.angle
+        return CarControls(f, a)
 
 
 class Controllers:

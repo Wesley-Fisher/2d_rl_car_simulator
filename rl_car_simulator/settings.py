@@ -123,6 +123,17 @@ class FeedbackCar:
         config["k"] = self.k
         return config
 
+class Exploration:
+    def __init__(self, config):
+        self.bias_range = float(config.get("bias_range", 0.5))
+        self.step = float(config.get("step", 0.1))
+    
+    def write(self):
+        config = {}
+        config["bias_range"] = self.bias_range
+        config["step"] = self.step
+        return config
+
 class Physics:
     def __init__(self, config):
         self.physics_timestep = float(config.get("phys_timestep", 0.05))
@@ -264,6 +275,7 @@ class Settings:
         self.car_properties = CarProperties(config.get("car_properties", {}))
         self.keyboard = Keyboard(config.get("keyboard", {}))
         self.feedback_car = FeedbackCar(config.get("feedback_car", {}))
+        self.exploration = Exploration(config.get("exploration", {}))
         self.physics = Physics(config.get("physics", {}))
         self.walls = Walls(self.world, config.get("walls", {}))
         self.preprocessing = Preprocessing(config.get("preprocessing", {}))
@@ -283,6 +295,7 @@ class Settings:
         config["init_car"] = self.car_properties.write()
         config["keyboard"] = self.keyboard.write()
         config["feedback_car"] = self.feedback_car.write()
+        config["exploration"] = self.exploration.write()
         config["physics"] = self.physics.write()
         config["walls"] = self.walls.write()
         config["preprocessing"] = self.preprocessing.write()
