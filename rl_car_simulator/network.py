@@ -4,6 +4,7 @@ import pickle as pk
 import os
 from os import listdir
 from os.path import isfile, join
+import statistics
 
 import tensorflow as tf
 from tensorflow import keras
@@ -14,10 +15,11 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.python.ops.gen_math_ops import is_nan 
 
 
-class TrainingStats:
+class EpochTrainingResults:
     def __init__(self):
-        self.num_samples = 0
-        self.num_removed = 0
+        self.avg_c_step = 0.0
+        self.avg_af_step = 0.0
+        self.avg_aa_step = 0.0
 
 
 class SampleTrainingResults:
@@ -26,6 +28,9 @@ class SampleTrainingResults:
         self.v1 = []
         self.a_force = []
         self.a_angle = []
+        self.c_step = 0.0
+        self.af_step = 0.0
+        self.aa_step = 0.0
         
 
 class Network:
@@ -121,8 +126,8 @@ class Network:
 
 
         d = ex.r1 + gamma * v1 - v0
-        step = d * alpha * I
-        self.update_weights(float(step), gradient_critic, trainable_critic)
+        c_step = float(d * alpha * I)
+        self.update_weights(float(c_step), gradient_critic, trainable_critic)
 
         def update_action_weights(ex_a, a, gradients, trainables):
 
@@ -146,9 +151,10 @@ class Network:
 
             actor_step = d * alpha * I * d_prob_wrt_density * d_density_wrt_u
             self.update_weights(float(actor_step), gradients, trainables)
+            return float(actor_step)
     
-        update_action_weights(ex.a_force, a_force, gradient_actor_force, trainable_actor_force)
-        update_action_weights(ex.a_angle, a_angle, gradient_actor_angle, trainable_actor_angle)
+        af_step = update_action_weights(ex.a_force, a_force, gradient_actor_force, trainable_actor_force)
+        aa_step = update_action_weights(ex.a_angle, a_angle, gradient_actor_angle, trainable_actor_angle)
 
 
         v0 = self.model(s0)[0][2]
@@ -161,6 +167,10 @@ class Network:
         results.v1.append(v0)
         results.a_force.append(a_force)
         results.a_angle.append(a_angle)
+
+        results.c_step = c_step
+        results.af_step = af_step
+        results.aa_tep = aa_step
     
         return results
 
@@ -180,11 +190,9 @@ class Network:
         self.training_experience = self.training_experience + new_exp
 
     def train_epoch(self):
-        stat = TrainingStats()
-        stat.num_samples = len(self.training_experience)
         remove_indices = []
         idx = -1
-        results = []
+        sample_results = []
         for ex in self.training_experience:
             idx = idx + 1
             result = self.train_sample(ex)
@@ -198,15 +206,14 @@ class Network:
                     exit()
                 if tf.math.is_nan(result.a_angle[i]):
                     exit()
-            results.append(result)
+            sample_results.append(result)
 
+        epoch_results = EpochTrainingResults()
+        epoch_results.avg_c_step = statistics.mean([r.c_step for r in sample_results])
+        epoch_results.avg_af_step = statistics.mean([r.af_step for r in sample_results])
+        epoch_results.avg_aa_step = statistics.mean([r.aa_step for r in sample_results])
 
-
-        # Remove elements with no impact on learning
-
-        stat.num_removed = len(remove_indices)
-        
-        return stat, results
+        return sample_results, epoch_results
 
     def remove_samples(self, training_results):
         num_rem = 0
@@ -242,6 +249,7 @@ class Network:
         if self.settings.memory.load_saved_network:
             network_file = memory_dir + "/model.h5"
             self.model = keras.models.load_model(network_file)
+            print("Loaded Network")
 
         if self.settings.memory.load_saved_experience:
             main_exp_file = memory_dir + "/experience.pk"
@@ -265,4 +273,5 @@ class Network:
         if self.settings.memory.purge_merged_experience:
             for file in del_files:
                 os.remove(memory_dir + "/" + file)
+
         

@@ -119,20 +119,36 @@ class GameEngine:
                 self.network.add_experience(exp)
     
     def training_fn(self):
-        self.network.load_state()
+        try:
+            self.network.load_state()
+        except OSError as e:
+            print("Could not load network and/or memory from file")
 
         while self.running:
             time.sleep(0.1)
             self.network.add_new_experience()
 
-            if len(self.network.training_experience) < self.settings.memory.min_train_size:
+            l_exp = len(self.network.training_experience)
+            if l_exp < self.settings.memory.min_train_size:
                 continue
 
-            stats, training_results = self.network.train_epoch()
-            num_rem = self.network.remove_samples(training_results)
+            if self.settings.memory.size_train_only > 0 and l_exp > self.settings.memory.size_train_only:
+                print("Only training network until experience discarded; Halting world")
+                self.train_only = True
+
+            if self.settings.memory.size_resume_world > 0 and l_exp < self.settings.memory.size_resume_world:
+                print("Resuming world")
+                self.train_only = False
+
+            print("Starting epoch on %d samples" % l_exp)
+
+            sample_results, epoch_results = self.network.train_epoch()
+            num_rem = self.network.remove_samples(sample_results)
             print("Training Stats:")
-            print("Num Samples: %d" % stats.num_samples)
             print("Removed: %d" % num_rem)
+            print("Avg Critic Step: %f" % epoch_results.avg_c_step)
+            print("Avg Actor F Step: %f" % epoch_results.avg_af_step)
+            print("Avg Actor A Step: %f" % epoch_results.avg_aa_step)
             self.network.save_state()
 
     def reporting_fn(self):
