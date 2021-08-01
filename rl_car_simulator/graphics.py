@@ -1,7 +1,26 @@
 import math
+from rl_car_simulator.network import Network
 import numpy as np
 import cv2
 import copy
+
+WALL = (0,0,0)
+WINDSHIELD = (0,0,0)
+SPAWN = (150,0,150)
+GOAL = (0,255,0)
+GOAL_APPROACH = (0,0,0)
+LIDAR = (255,0,255)
+
+KEYBOARD = (255,0,0)
+KEYBOARD_GOAL = (0,215,255)
+
+NETWORK = (0,0,255)
+NETWORKEXPLORATION = (0,0,155)
+
+FEEDBACK = (0,255,0)
+FEEDBACKEXPLORATION = (0,155,0)
+
+RANDOM = (100,100,155)
 
 class Graphics:
     def __init__(self, settings, world):
@@ -30,15 +49,15 @@ class Graphics:
         p1 = tuple(p1.tolist())
         p2 = (wall.x2 * self.settings.graphics.pixels_per_m).astype(np.int32)
         p2 = tuple(p2.tolist())
-        cv2.line(frame, p1, p2, color=(0,0,0), thickness=4)
+        cv2.line(frame, p1, p2, color=WALL, thickness=4)
 
     def draw_goal(self, frame, goal):
         goal = tuple([int(g* self.settings.graphics.pixels_per_m) for g in goal])
-        cv2.circle(frame, goal, color=(0,255,0), radius=int(1 * self.settings.graphics.pixels_per_m), thickness=-1)
+        cv2.circle(frame, goal, color=GOAL, radius=int(1 * self.settings.graphics.pixels_per_m), thickness=-1)
 
     def draw_spawn_pt(self, frame, pt):
         pt = tuple([int(g* self.settings.graphics.pixels_per_m) for g in pt])
-        cv2.circle(frame, pt, color=(150,0,150), radius=int(0.5 * self.settings.graphics.pixels_per_m), thickness=-1)
+        cv2.circle(frame, pt, color=SPAWN, radius=int(0.5 * self.settings.graphics.pixels_per_m), thickness=-1)
 
 
     def draw_autonomous_car(self, base_frame, car, color):
@@ -47,30 +66,34 @@ class Graphics:
         if self.settings.graphics.draw_goals:
             curr = tuple([int(c* self.settings.graphics.pixels_per_m) for c in [car.state.x, car.state.y]])
             goal = tuple([int(g* self.settings.graphics.pixels_per_m) for g in car.goal])
-            cv2.line(base_frame, curr, goal, color=(0,0,0), thickness=1)
+            cv2.line(base_frame, curr, goal, color=GOAL_APPROACH, thickness=1)
 
         if car.sensed_state is not None and self.settings.graphics.draw_lidar:
             for ang, dist in zip(self.settings.car_properties.lidar_angles, car.lidar_state):
                 ang = ang + car.state.h
                 x = curr[0] + int(dist * math.cos(ang) * self.settings.graphics.pixels_per_m)
                 y = curr[1] + int(dist * math.sin(ang) * self.settings.graphics.pixels_per_m)
-                cv2.line(base_frame, curr, (x,y), color=(128,120,120), thickness=1)
-                cv2.circle(base_frame, (x,y), color=(255,0,255), radius=5, thickness=-1)
+                cv2.line(base_frame, curr, (x,y), color=LIDAR, thickness=1)
+                cv2.circle(base_frame, (x,y), color=LIDAR, radius=5, thickness=-1)
 
     def create_current_frame(self, base_frame):
 
         for car in self.world.keyboard_cars:
-            self.draw_car(base_frame, car, (255,0,0))
+            self.draw_car(base_frame, car, KEYBOARD)
 
             goal = tuple([int(g* self.settings.graphics.pixels_per_m) for g in car.goal])
-            cv2.circle(base_frame, goal, color=(0,215,255), radius=10, thickness=-1)
+            cv2.circle(base_frame, goal, color=KEYBOARD_GOAL, radius=10, thickness=-1)
 
         for car in self.world.network_cars:
-            self.draw_autonomous_car(base_frame, car, (0,0,255))
+            self.draw_autonomous_car(base_frame, car, NETWORK)
+        for car in self.world.network_exploration_cars:
+            self.draw_autonomous_car(base_frame, car, NETWORKEXPLORATION)
         for car in self.world.random_cars:
-            self.draw_autonomous_car(base_frame, car, (100,100,155))
+            self.draw_autonomous_car(base_frame, car, RANDOM)
         for car in self.world.feedback_cars:
-            self.draw_autonomous_car(base_frame, car, (0,0,150))
+            self.draw_autonomous_car(base_frame, car, FEEDBACK)
+        for car in self.world.feedback_exploration_cars:
+            self.draw_autonomous_car(base_frame, car, FEEDBACKEXPLORATION)
 
         return base_frame
 
@@ -85,7 +108,7 @@ class Graphics:
         corners = car.get_windshield_corners()
         corners = np.concatenate(corners, axis=1).T
         corners = (corners * self.settings.graphics.pixels_per_m).astype(np.int32)
-        cv2.fillPoly(frame, [corners], (0,0,0))
+        cv2.fillPoly(frame, [corners], WINDSHIELD)
 
     def show_current_world(self):
         frame = self.create_current_frame(copy.copy(self.base_world_frame))
