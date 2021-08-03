@@ -1,4 +1,5 @@
 import math
+from rl_car_simulator.utilities import Utility
 import numpy as np
 import pickle as pk
 import os
@@ -13,6 +14,8 @@ from tensorflow.keras.layers import Dense, ReLU
 from tensorflow.keras import initializers
 from tensorflow.keras.optimizers import Adam
 from tensorflow.python.ops.gen_math_ops import is_nan 
+
+from .utilities import Utility
 
 
 class EpochTrainingResults:
@@ -37,6 +40,7 @@ class Network:
     def __init__(self, settings, N):
         self.settings = settings
         self.N = N
+        self.util = Utility(settings)
 
         self.model = Sequential()
         ik = initializers.RandomNormal(stddev=0.1, seed=1)
@@ -132,10 +136,14 @@ class Network:
         def update_action_weights(ex_a, a, gradients, trainables):
 
             sig = self.settings.statistics.sigma
-            in_e = -0.5 * float(ex_a - a) * float(ex_a - a) * sig
-            density = 1.0 / (2.0 * math.pi * sig) * math.exp(in_e)
-            integration_width = 2 * math.pi * sig * 0.1
+            density = self.util.normal_density(ex_a, a, sig)
+            integration_width = self.util.normal_int_width(sig)
+            
             prob = integration_width * density
+            prob_net = self.util.normal_int_prob(a, a, sig)
+            imp_sample_ratio = min(2.0, max(0.5, prob_net, prob))
+            if math.isnan(imp_sample_ratio):
+                imp_sample_ratio = 1.0
 
             # Step = alpha * delta * I * ln(grad(prob)
             #      = alpha * delta * I * grad(prob) / prob
@@ -145,11 +153,9 @@ class Network:
             # d-u/d-weights <- Keras gradient update
 
             d_prob_wrt_density = integration_width
-            mat_factor = 1.0/(sig)
-            d_density_wrt_u = -0.5 * mat_factor * (ex_a - a) * prob
-            d_density_wrt_u = d_density_wrt_u
+            d_density_wrt_u = self.util.normal_density_derivative(ex_a, a, sig)
 
-            actor_step = d * alpha * I * d_prob_wrt_density * d_density_wrt_u
+            actor_step = d * alpha * I * d_prob_wrt_density * d_density_wrt_u * imp_sample_ratio
             self.update_weights(float(actor_step), gradients, trainables)
             return float(actor_step)
     
