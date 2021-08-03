@@ -13,15 +13,17 @@ class CarState:
         self.vh = 0.0
 
 class CarControls:
-    def __init__(self, force, steer):
+    def __init__(self, force, steer, p_force, p_steer):
         self.force = force
         self.steer = steer
+        self.pf = p_force
+        self.pa = p_steer
 
 class Car:
     def __init__(self, settings, state):
         self.settings = settings
         self.state = state
-        self.controls = CarControls(0.0, 0.0)
+        self.controls = CarControls(0.0, 0.0, 1.0, 1.0)
         self.controller = None
 
         self.util = Utility()
@@ -106,12 +108,16 @@ class CarStepExperience:
         self.a0 = None
         self.r1 = None
         self.s1 = None
+        self.pf = None
+        self.pa = None
     
     def set_s0(self, s):
         self.s0 = s
     
     def set_a0(self, a):
         self.a0 = a
+        self.pf = a.pf
+        self.pa = a.pa
     
     def set_r1(self, r):
         self.r1 = r

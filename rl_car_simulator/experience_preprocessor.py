@@ -6,6 +6,8 @@ class TDExperience:
         self.s0 = None
         self.a_force = None
         self.a_angle = None
+        self.pf = None
+        self.pa = None
         self.G = None
         self.s1 = None
         self.step_in_ep = 0
@@ -47,6 +49,8 @@ class ExperiencePreprocessor:
             td.s0 = ex.s0.reshape((1,8))
             td.a_force = ex.a0.force
             td.a_angle = ex.a0.steer
+            td.pf = ex.pf
+            td.pa = ex.pa
             td.r1 = ex.r1
             td.s1 = ex.s1.reshape((1,8))
             td.step_in_ep = N - i

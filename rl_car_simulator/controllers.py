@@ -3,6 +3,7 @@ import random
 import math
 
 from .car import CarControls
+from .utilities import Utility
 
 class ControllerTypes:
     keyboard = "Keyboard"
@@ -16,6 +17,9 @@ class ControllerTypes:
 class Controller:
     def __init__(self, settings):
         self.settings = settings
+        self.util = Utility()
+        self.stat_p = self.util.normal_density(0, 0, self.settings.statistics.sigma)
+        self.stat_p = self.stat_p * self.util.normal_int_width(self.settings.statistics.sigma)
 
     def get_controls(self, state):
         raise NotImplementedError
@@ -28,7 +32,9 @@ class Controller:
 
 class KeyboardController(Controller):
     def __init__(self, settings):
+        Controller.__init__(self, settings)
         self.settings = settings
+
 
     def get_controls(self, state):
         w = keyboard.is_pressed('w')
@@ -38,10 +44,12 @@ class KeyboardController(Controller):
         l = keyboard.is_pressed('a')
         r = keyboard.is_pressed('d')
         angle = float(r - l) * self.settings.keyboard.angle
-        return CarControls(force, angle)
+
+        return CarControls(force, angle, self.stat_p, self.stat_p)
 
 class NetworkController(Controller):
     def __init__(self, settings, network):
+        Controller.__init__(self, settings)
         self.settings = settings
         self.network = network
 
@@ -56,19 +64,24 @@ class NetworkController(Controller):
             force = 0.0
         if math.isnan(angle):
             angle = 0.0
-        return CarControls(force, angle)
+
+        # Network follows exactly what it predicts
+        return CarControls(force, angle, self.stat_p, self.stat_p)
 
 class HardCodedController(Controller):
     def __init__(self, settings, f, a):
+        Controller.__init__(self, settings)
         self.settings = settings
         self.f = f
         self.a = a
 
     def get_controls(self, state):
-        return CarControls(self.f, self.a)
+        # Hardcoded has 100% probability of taking this action
+        return CarControls(self.f, self.a, 1.0, 1.0)
 
 class RandomController(Controller):
     def __init__(self, settings, bias_range=2, step=0.5):
+        Controller.__init__(self, settings)
         self.settings = settings
         self.a = 0.0
         self.f = 0.0
@@ -83,10 +96,12 @@ class RandomController(Controller):
     def get_controls(self, state):
         self.a = self.a + random.gauss(0, self.step * self.settings.physics.control_timestep)
         self.f = self.f + random.gauss(0, self.step * self.settings.physics.control_timestep)
-        return CarControls(self.f, self.a)
+        # Stick to default probability for now
+        return CarControls(self.f, self.a, self.stat_p, self.stat_p)
 
 class FeedbackController(Controller):
     def __init__(self, settings):
+        Controller.__init__(self, settings)
         self.settings = settings
     
     def get_controls(self, state):
@@ -101,7 +116,7 @@ class FeedbackController(Controller):
         if abs(d_head) > 2 * dist:
             force = -0.5
             angle = 0.0
-            return CarControls(force, angle)
+            return CarControls(force, angle, 1.0, 1.0)
 
         force = self.settings.feedback_car.force
         angle = self.settings.feedback_car.k * d_head
@@ -132,11 +147,12 @@ class FeedbackController(Controller):
             angle = dr - dl
             force = -2
 
-        return CarControls(force, angle)
+        return CarControls(force, angle, 1.0, 1.0)
 
 
 class ExplorationController(Controller):
     def __init__(self, settings, base):
+        Controller.__init__(self, settings)
         self.settings = settings
         self.base = base
         self.rnd = RandomController(settings, self.settings.exploration.bias_range,
@@ -151,7 +167,10 @@ class ExplorationController(Controller):
 
         f = c1.force + c2.force
         a = c1.steer + c2.steer
-        return CarControls(f, a)
+
+        pf = self.util.normal_int_prob(f, c1.force, self.settings.statistics.sigma)
+        pa = self.util.normal_int_prob(a, c1.steer, self.settings.statistics.sigma)
+        return CarControls(f, a, pf, pa)
 
 
 class Controllers:
