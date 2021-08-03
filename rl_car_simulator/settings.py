@@ -1,3 +1,4 @@
+from logging import root
 import yaml
 
 
@@ -198,9 +199,7 @@ class Walls:
                      {"x1": 30, "y1": 40,"x2": 40, "y2": 30}]
         walls = config.get("walls", def_walls)
         proc_walls = []
-        print(walls)
         for w in walls:
-            print(w)
             x1 = float(w["x1"])
             y1 = float(w["y1"])
             x2 = float(w["x2"])
@@ -267,16 +266,17 @@ class Files:
         self.root_dir = root_dir
 
 class Settings:
-    def __init__(self, root_dir, settings_file, save_default):
+    def __init__(self, root_dir=None, settings_file=None, save_default=False):
         self.settings_file = settings_file
 
         config = {}
-        try:
-            with open(self.settings_file, 'r') as handle:
-                config = yaml.load(handle)
-        except Exception as e:
-            print(e)
-            config = {}
+        if root_dir is not None and settings_file is not None:
+            try:
+                with open(self.settings_file, 'r') as handle:
+                    config = yaml.load(handle)
+            except Exception as e:
+                print(e)
+                config = {}
 
         self._files = Files(root_dir)
 
@@ -301,6 +301,8 @@ class Settings:
             self.write()
 
     def write(self):
+        if self.settings_file is None:
+            return
         config = {}
         config["world"] = self.world.write()
         config["graphics"] = self.graphics.write()

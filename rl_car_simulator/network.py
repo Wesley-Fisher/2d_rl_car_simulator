@@ -40,7 +40,7 @@ class Network:
     def __init__(self, settings, N):
         self.settings = settings
         self.N = N
-        self.util = Utility(settings)
+        self.util = Utility()
 
         self.model = Sequential()
         ik = initializers.RandomNormal(stddev=0.1, seed=1)

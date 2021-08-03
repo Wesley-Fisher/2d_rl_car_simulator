@@ -14,7 +14,7 @@ class TDExperience:
         self.next_terminal = False
 
 class ExperiencePreprocessor:
-    def __init__(self, settings, reporting):
+    def __init__(self, settings, reporting=None):
         self.settings = settings
         self.reporting = reporting
 
@@ -22,7 +22,8 @@ class ExperiencePreprocessor:
 
     def new_experience(self, exp, type, name):
         
-        self.reporting.record_car_performance(name, self.get_total_reward(exp))
+        if self.reporting is not None:
+            self.reporting.record_car_performance(name, self.get_total_reward(exp))
 
         if type in self.settings.preprocessing.use_types:
             self.experience_queue.append(exp)
