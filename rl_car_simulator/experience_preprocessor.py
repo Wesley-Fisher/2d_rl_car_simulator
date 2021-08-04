@@ -27,6 +27,10 @@ class ExperiencePreprocessor:
 
         if type in self.settings.preprocessing.use_types:
             self.experience_queue.append(exp)
+            #print("%s in %s" % (type, str(self.settings.preprocessing.use_types)))
+        else:
+            #print("%s not in %s" % (type, str(self.settings.preprocessing.use_types)))
+            pass
 
     def get_total_reward(self, exp):
         total = 0.0

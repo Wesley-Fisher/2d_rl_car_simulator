@@ -13,7 +13,7 @@ from rl_car_simulator.world import World
 from rl_car_simulator.walls import Wall
 from rl_car_simulator.world_creation import WorldCreation
 from rl_car_simulator.car import Car, CarState, CarStepExperience
-from rl_car_simulator.controllers import Controller, HardCodedController, Controllers
+from rl_car_simulator.controllers import Controller, HardCodedController, Controllers, ControllerTypes
 from rl_car_simulator.experience_preprocessor import ExperiencePreprocessor
 from rl_car_simulator.experience_engine import ExperienceEngine
 
@@ -26,6 +26,7 @@ class TestNetworkIntegration(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         settings = Settings()
+        settings.walls.walls = settings.walls.outer_walls
         settings.learning.max_episode_length = 200
         settings.physics.physics_timestep = 0.2
         settings.physics.control_timestep = 0.2
@@ -46,6 +47,7 @@ class TestNetworkIntegration(unittest.TestCase):
         self.assertTrue(True)
 
     def generate_collision_processed_experience(settings):
+        settings.preprocessing.use_types = [ControllerTypes.hardcoded]
         world = WorldCreation(settings).get()
         world.walls.append(Wall(((25,0),(25,20))))
         preprocessor = ExperiencePreprocessor(settings)
@@ -60,11 +62,13 @@ class TestNetworkIntegration(unittest.TestCase):
         world.keyboard_cars = []
         world.network_cars = []
         world.hardcoded_cars = [car]
+        car.set_name("test")
+        car.set_type(ControllerTypes.hardcoded)
         world.all_cars = [car]
         s0 = physics.get_car_state(car)
         net = Network(settings, len(s0))
         controller = HardCodedController(settings, 1.0, 0.0)
-        controllers = Controllers(None, None, controller)
+        controllers = Controllers(None, None, controller, [], None, [], [])
         physics.set_controllers(controllers)
 
         s0 = np.array(s0).reshape((1,len(s0)))
@@ -73,7 +77,7 @@ class TestNetworkIntegration(unittest.TestCase):
 
         # Generate one set of experience of driving into a wall
         i = 0
-        while len(preprocessor.experience_queue) < 2:
+        while len(preprocessor.experience_queue) < 1:
             physics.full_control_sensor_step()
             physics.full_physics_termination_step()
 
@@ -82,7 +86,7 @@ class TestNetworkIntegration(unittest.TestCase):
             i = i + 1
         assert(i > 10)
 
-        experience_raw = preprocessor.experience_queue.pop(1)
+        experience_raw = preprocessor.experience_queue.pop(0)
         #print([ex.r1 for ex in experience_raw])
         assert(len(experience_raw) > 2)
 
@@ -90,6 +94,7 @@ class TestNetworkIntegration(unittest.TestCase):
         return experience, net
 
     def generate_collision_processed_experience_turning(settings):
+        settings.preprocessing.use_types = [ControllerTypes.hardcoded]
         world = WorldCreation(settings).get()
         world.walls.append(Wall(((20,15),(40,15))))
         preprocessor = ExperiencePreprocessor(settings)
@@ -104,11 +109,13 @@ class TestNetworkIntegration(unittest.TestCase):
         world.keyboard_cars = []
         world.network_cars = []
         world.hardcoded_cars = [car]
+        car.set_name("test")
+        car.set_type(ControllerTypes.hardcoded)
         world.all_cars = [car]
         s0 = physics.get_car_state(car)
         net = Network(settings, len(s0))
         controller = HardCodedController(settings, 1.0, 0.3)
-        controllers = Controllers(None, None, controller)
+        controllers = Controllers(None, None, controller, [], None, [], [])
         physics.set_controllers(controllers)
 
         s0 = np.array(s0).reshape((1,len(s0)))
@@ -116,7 +123,7 @@ class TestNetworkIntegration(unittest.TestCase):
 
         # Generate one set of experience of driving into a wall
         i = 0
-        while len(preprocessor.experience_queue) < 2:
+        while len(preprocessor.experience_queue) < 1:
             physics.full_control_sensor_step()
             physics.full_physics_termination_step()
 
@@ -126,7 +133,7 @@ class TestNetworkIntegration(unittest.TestCase):
             i = i + 1
         assert(i > 10)
 
-        experience_raw = preprocessor.experience_queue.pop(1)
+        experience_raw = preprocessor.experience_queue.pop(0)
         #print([ex.r1 for ex in experience_raw])
         assert(len(experience_raw) > 2)
 
@@ -134,6 +141,7 @@ class TestNetworkIntegration(unittest.TestCase):
         return experience, net
 
     def generate_goal_processed_experience(settings):
+        settings.preprocessing.use_types = [ControllerTypes.hardcoded]
         world = WorldCreation(settings).get()
         preprocessor = ExperiencePreprocessor(settings)
         experience = ExperienceEngine(settings, world, preprocessor)
@@ -148,11 +156,13 @@ class TestNetworkIntegration(unittest.TestCase):
         world.keyboard_cars = []
         world.network_cars = []
         world.hardcoded_cars = [car]
+        car.set_name("test")
+        car.set_type(ControllerTypes.hardcoded)
         world.all_cars = [car]
         s0 = physics.get_car_state(car)
         net = Network(settings, len(s0))
         controller = HardCodedController(settings, 1.0, 0.0)
-        controllers = Controllers(None, None, controller)
+        controllers = Controllers(None, None, controller, [], None, [], [])
         physics.set_controllers(controllers)
 
         s0 = np.array(s0).reshape((1,len(s0)))
@@ -175,6 +185,7 @@ class TestNetworkIntegration(unittest.TestCase):
         return experience, net
 
     def generate_goal_processed_experience_turning(settings):
+        settings.preprocessing.use_types = [ControllerTypes.hardcoded]
         world = WorldCreation(settings).get()
         preprocessor = ExperiencePreprocessor(settings)
         experience = ExperienceEngine(settings, world, preprocessor)
@@ -189,11 +200,13 @@ class TestNetworkIntegration(unittest.TestCase):
         world.keyboard_cars = []
         world.network_cars = []
         world.hardcoded_cars = [car]
+        car.set_name("test")
+        car.set_type(ControllerTypes.hardcoded)
         world.all_cars = [car]
         s0 = physics.get_car_state(car)
         net = Network(settings, len(s0))
         controller = HardCodedController(settings, 1.0, -0.2)
-        controllers = Controllers(None, None, controller)
+        controllers = Controllers(None, None, controller, [], None, [], [])
         physics.set_controllers(controllers)
 
         s0 = np.array(s0).reshape((1,len(s0)))
