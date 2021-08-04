@@ -261,6 +261,15 @@ class Reporting:
         config["car_performance_report_interval"] = self.car_performance_report_interval
         return config
 
+class Debug:
+    def __init__(self, config):
+        self.profile_network = bool(config.get("profile_network", False))
+
+    def write(self):
+        config = {}
+        config["profile_network"] = self.profile_network
+        return config
+
 class Files:
     def __init__(self, root_dir):
         self.root_dir = root_dir
@@ -296,6 +305,7 @@ class Settings:
         self.statistics = Statistics(config.get("statistics", {}))
         self.memory = Memory(config.get("memory", {}))
         self.reporting = Reporting(config.get("reporting", {}))
+        self.debug = Debug(config.get("debug", {}))
 
         if save_default:
             self.write()
@@ -318,6 +328,7 @@ class Settings:
         config["statistics"] = self.statistics.write()
         config["memory"] = self.memory.write()
         config["reporting"] = self.reporting.write()
+        config["debug"] = self.debug.write()
 
         with open(self.settings_file, 'w') as handle:
             yaml.dump(config, handle)

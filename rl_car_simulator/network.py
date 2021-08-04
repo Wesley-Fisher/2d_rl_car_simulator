@@ -7,6 +7,9 @@ from os import listdir
 from os.path import isfile, join
 import statistics
 
+import io
+import cProfile, pstats
+
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.models import Sequential
@@ -196,6 +199,11 @@ class Network:
         self.training_experience = self.training_experience + new_exp
 
     def train_epoch(self):
+
+        if self.settings.debug.profile_network:
+            profiler = cProfile.Profile(subcalls=False)
+            profiler.enable()
+
         remove_indices = []
         idx = -1
         sample_results = []
@@ -218,6 +226,14 @@ class Network:
         epoch_results.avg_c_step = statistics.mean([r.c_step for r in sample_results])
         epoch_results.avg_af_step = statistics.mean([r.af_step for r in sample_results])
         epoch_results.avg_aa_step = statistics.mean([r.aa_step for r in sample_results])
+
+        if self.settings.debug.profile_network:
+            s = io.StringIO()
+            profiler.disable()
+            stats = pstats.Stats(profiler, stream=s).sort_stats('cumtime')
+            stats.print_stats()
+            with open(self.settings._files.root_dir + "/debug/network_profile.txt", 'w') as handle:
+                handle.write(s.getvalue())
 
         return sample_results, epoch_results
 
