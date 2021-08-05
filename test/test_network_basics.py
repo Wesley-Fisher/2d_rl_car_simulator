@@ -42,14 +42,16 @@ class TestNetworkBasics(unittest.TestCase):
         
         # Positive Change
         targets = []
+        advantages = []
         for state in states:
             s = np.array(state).reshape((1,len(state)))
             target = np.array(net.model(s)[0])
             print(target)
             target[2] = target[2] + 0.5
             targets.append(target)
+            advantages.append(0.0)
 
-        net.fit_model(states, targets)
+        net.fit_model(states, targets, advantages)
 
         v1 = net.model(s_net)[0][2]
         self.assertTrue(float(v1) - float(v0) > 0.0)

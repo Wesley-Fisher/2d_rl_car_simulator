@@ -12,8 +12,8 @@ import cProfile, pstats
 
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, ReLU
+from tensorflow.keras.models import Sequential, Model
+from tensorflow.keras.layers import Dense, ReLU, Input
 from tensorflow.keras import initializers
 from tensorflow.keras.optimizers import Adam, SGD
 from tensorflow.python.ops.gen_math_ops import is_nan 
@@ -37,6 +37,9 @@ class SampleTrainingResults:
         self.c_step = 0.0
         self.af_step = 0.0
         self.aa_step = 0.0
+
+def actor_critic_loss(target, pred, advantage):
+    return 0.0
         
 
 class Network:
@@ -45,35 +48,42 @@ class Network:
         self.N = N
         self.util = Utility()
 
-        self.model = Sequential()
+        
         ik = initializers.RandomNormal(stddev=0.1, seed=1)
         ib = initializers.RandomNormal(stddev=0.1, seed=2)
 
         W = 0.5
-
         WN = int(W*self.N + 1)
-        self.model.add(Dense(self.N, input_dim=self.N, kernel_initializer=ik, bias_initializer=ib))
-        self.model.add(ReLU(negative_slope=0.3))
 
-        self.model.add(Dense(WN, kernel_initializer=ik, bias_initializer=ib))
-        self.model.add(ReLU(negative_slope=0.3))
+        D = 2
 
-        self.model.add(Dense(WN, kernel_initializer=ik, bias_initializer=ib))
-        self.model.add(ReLU(negative_slope=0.3))
+        # https://ai.stackexchange.com/questions/18753/how-to-set-the-target-for-the-actor-in-a2c
+        self.advantage = Input(shape=[1], name='advantage')
+        self.target_prediction = Input(shape=[2], name='target')
+        self.input = Input(shape=(8))
 
-        self.model.add(Dense(3, kernel_initializer=ik, bias_initializer=ib))
-        self.model.add(ReLU(negative_slope=1.0))
+        layer = Dense(WN, kernel_initializer=ik, bias_initializer=ib)(self.input)
+        layer = ReLU(negative_slope=0.3)(layer)
+
+        for i in range(0, D):
+            layer = Dense(WN, kernel_initializer=ik, bias_initializer=ib)(layer)
+            layer = ReLU(negative_slope=0.3)(layer)
+
+        out1 = Dense(3, kernel_initializer=ik, bias_initializer=ib)(layer)
+        self.out = ReLU(negative_slope=1.0)(out1)
+
+        self.model = Model([self.input, self.advantage, self.target_prediction], self.out, name='actor_critic')
 
         self.frozen_model = self.model
         self.new_training_experiences = []
         self.training_experience = []
 
-        self.optimizer = Adam(learning_rate=self.settings.learning.alpha)
-        self.model.compile(self.optimizer, loss='mse')
+        self.compile()
 
     def compile(self):
         self.optimizer = Adam(learning_rate=self.settings.learning.alpha)
-        self.model.compile(self.optimizer, loss='mse')
+        self.model.add_loss(actor_critic_loss)
+        self.model.compile(self.optimizer)
 
     def freeze(self):
         self.frozen_model = self.model
@@ -89,6 +99,7 @@ class Network:
         states = []
         original = []
         targets = []
+        advantages = []
 
         gamma = self.settings.learning.gamma
 
@@ -118,23 +129,26 @@ class Network:
                 d_density_wrt_u = self.util.normal_density_derivative(a, u, sig)
                 #print("dd/du: %f" % float(d_density_wrt_u))
                 #print("v1: %f" % v1)
-                d = ex.r1 + gamma * v1 - v0
+                d = ex.r1 + gamma * v1 - v0 # Advantage
                 #print("d: %f" % float(d))
                 dir = math.copysign(1,d)
                 step = dir * d_density_wrt_u * d_prob_wrt_density * 0.1
+                step = d
                 #print("Step: %f" % step)
                 #print("New: %f" % float(a + step))
                 return a + step, step
 
-            target_actor_force, af_step = target_action(d, ex.a_force, pred0[0])
-            target_actor_angle, aa_step = target_action(d, ex.a_angle, pred0[1])
-    
+            #target_actor_force, af_step = target_action(d, ex.a_force, pred0[0])
+            #target_actor_angle, aa_step = target_action(d, ex.a_angle, pred0[1])
+            advantage = float(ex.r1 + gamma * v1 - v0)
+            advantages.append(advantage)
+
             #print("%f\t%f" % (af_step, aa_step))
 
-            target = np.array([[target_actor_force, target_actor_angle, target_critic]])
+            target = np.array([[1.0, 1.0, target_critic]])
             targets.append(target)
 
-        return states, original, targets
+        return states, original, targets, advantages
 
 
     def no_network_change(self, results, lim):
@@ -154,8 +168,8 @@ class Network:
         self.new_training_experiences = []
         self.training_experience = self.training_experience + new_exp
 
-    def fit_model(self, states, targets):
-        self.model.fit(np.array(states), np.array(targets))
+    def fit_model(self, states, targets, advantages):
+        self.model.fit((np.array(states), np.array(targets), np.array(advantages)), verbose=0)
 
     def train_epoch(self):
 
@@ -167,9 +181,9 @@ class Network:
         idx = -1
         sample_results = []
 
-        states, original, targets = self.build_epoch_targets(self.training_experience)
+        states, original, targets, advantages = self.build_epoch_targets(self.training_experience)
 
-        self.fit_model(states, targets)
+        self.fit_model(states, targets, advantages)
 
         new = self.model.predict(np.array(states))
 
@@ -261,5 +275,6 @@ class Network:
         if self.settings.memory.purge_merged_experience:
             for file in del_files:
                 os.remove(memory_dir + "/" + file)
+
 
         
