@@ -35,19 +35,39 @@ class TestNetworkBasics(unittest.TestCase):
         s0 = physics.get_car_state(car)
         net = Network(settings, len(s0))
 
-        s0 = np.array(s0).reshape((1,len(s0)))
+        s_net = np.array(s0).reshape((1,len(s0)))
+        v0 = net.model(s_net)[0][2]
+        
+        states = [s0]
         
         # Positive Change
-        v0, gradient_critic, trainable_critic, _, _, _, _, _, _ = net.calculate_gradients(s0)
-        net.update_weights(1e-3, gradient_critic, trainable_critic)
-        v1 = net.model(s0)[0][2]
+        targets = []
+        for state in states:
+            s = np.array(state).reshape((1,len(state)))
+            target = np.array(net.model(s)[0])
+            print(target)
+            target[2] = target[2] + 0.5
+            targets.append(target)
+
+        net.fit_model(states, targets)
+
+        v1 = net.model(s_net)[0][2]
         self.assertTrue(float(v1) - float(v0) > 0.0)
 
+        v0 = v1
         # Negative Change
-        v0, gradient_critic, trainable_critic, _, _, _, _, _, _ = net.calculate_gradients(s0)
-        net.update_weights(-1e-3, gradient_critic, trainable_critic)
-        v1 = net.model(s0)[0][2]
+        targets = []
+        for state in states:
+            s = np.array(state).reshape((1,len(state)))
+            target = np.array(net.model(s)[0])
+            print(target)
+            target[2] = target[2] - 0.5
+            targets.append(target)
+
+        net.fit_model(states, targets)
+        v1 = net.model(s_net)[0][2]
         self.assertTrue(float(v1) - float(v0) < 0.0)
+
 
     def test_update_weights_actor(self):
         settings = Settings()
@@ -60,19 +80,40 @@ class TestNetworkBasics(unittest.TestCase):
         s0 = physics.get_car_state(car)
         net = Network(settings, len(s0))
 
-        s0 = np.array(s0).reshape((1,len(s0)))
-        
+        s_net = np.array(s0).reshape((1,len(s0)))
+        a0 = net.model(s_net)[0][0]
+
+        states = [s0]
+
         # Positive Change
-        _, _, _, a0, gradient_actor, trainable_actor, _, _, _ = net.calculate_gradients(s0)
-        net.update_weights(1e-3, gradient_actor, trainable_actor)
-        a1 = net.model(s0)[0][0]
+        targets = []
+        for state in states:
+            s = np.array(state).reshape((1,len(state)))
+            target = np.array(net.model(s)[0])
+            print(target)
+            target[0] = target[0] + 0.5
+            targets.append(target)
+
+        net.fit_model(states, targets)
+
+        a1 = net.model(s_net)[0][0]
         self.assertTrue(float(a1) - float(a0) > 0.0)
 
+        a0 = a1
         # Negative Change
-        _, _, _, a0, gradient_actor, trainable_actor, _, _, _ = net.calculate_gradients(s0)
-        net.update_weights(-1e-3, gradient_actor, trainable_actor)
-        a1 = net.model(s0)[0][0]
+        targets = []
+        for state in states:
+            s = np.array(state).reshape((1,len(state)))
+            target = np.array(net.model(s)[0])
+            print(target)
+            target[0] = target[0] - 0.5
+            targets.append(target)
+
+        net.fit_model(states, targets)
+
+        a1 = net.model(s_net)[0][0]
         self.assertTrue(float(a1) - float(a0) < 0.0)
+
 
     def test_gradient_ascent_critic(self):
         settings = Settings()
@@ -85,14 +126,24 @@ class TestNetworkBasics(unittest.TestCase):
         s0 = physics.get_car_state(car)
         net = Network(settings, len(s0))
 
-        s0 = np.array(s0).reshape((1,len(s0)))
-        
-        for i in range(0, 25):
-            v0, gradient_critic, train_critic, _, _, _, _, _, _ = net.calculate_gradients(s0)
-            net.update_weights(1e-4, gradient_critic, train_critic)
-            v1 = net.model(s0)[0][2]
-            self.assertTrue(float(v1) - float(v0) > 0.0)
+        s_net = np.array(s0).reshape((1,len(s0)))
+        v0 = net.model(s_net)[0][2]
 
+        states = [s0]
+
+        for i in range(0, 25):
+            targets = []
+            for state in states:
+                s = np.array(state).reshape((1,len(state)))
+                target = np.array(net.model(s)[0])
+                print(target)
+                target[2] = target[2] + 0.5
+                targets.append(target)
+
+            net.fit_model(states, targets)
+
+            v1 = net.model(s_net)[0][2]
+            self.assertTrue(float(v1) - float(v0) > 0.0)
 
 
 if __name__ == '__main__':

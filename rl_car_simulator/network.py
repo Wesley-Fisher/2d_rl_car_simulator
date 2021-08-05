@@ -138,6 +138,9 @@ class Network:
         self.new_training_experiences = []
         self.training_experience = self.training_experience + new_exp
 
+    def fit_model(self, states, targets):
+        self.model.fit(np.array(states), np.array(targets))
+
     def train_epoch(self):
 
         if self.settings.debug.profile_network:
@@ -150,7 +153,7 @@ class Network:
 
         states, original, targets = self.build_epoch_targets(self.training_experience)
 
-        self.model.fit(np.array(states), np.array(targets))
+        self.fit_model(states, targets)
 
         new = self.model.predict(np.array(states))
 
