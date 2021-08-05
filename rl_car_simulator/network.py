@@ -142,7 +142,9 @@ class Network:
         da_angle = results.aa_step
         dv = results.c_step
 
-        if (math.fabs(dv) + math.fabs(da_force) + math.fabs(da_angle)) < lim:
+        change = math.fabs(dv) + math.fabs(da_force) + math.fabs(da_angle)
+        #print("%f < %f" % (change, lim))
+        if change < lim:
             return True
 
         return False
@@ -199,7 +201,7 @@ class Network:
         remove_indices = []
         i = 0
         for result in training_results:
-            if self.no_network_change(result, self.settings.learning.alpha):
+            if self.no_network_change(result, self.settings.learning.alpha*10):
                 remove_indices.append(i)
             i = i + 1
         
@@ -207,7 +209,7 @@ class Network:
         
         for ri in remove_indices:
             l = len(self.training_experience)
-            if ri < l and l < self.settings.memory.min_reduce_size:
+            if ri < l and l > self.settings.memory.min_reduce_size:
                 self.training_experience.pop(ri)
                 num_rem = num_rem + 1
         return num_rem
