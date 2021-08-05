@@ -118,11 +118,8 @@ class GameEngine:
                 exp = self.experience_preprocessor.preprocess_episode(exp)
                 self.network.add_experience(exp)
     
-    def training_fn(self):
-        try:
-            self.network.load_state()
-        except OSError as e:
-            print("Could not load network and/or memory from file")
+    def training_fn(self):   
+        self.network.load_state()
 
         while self.running:
             time.sleep(0.1)

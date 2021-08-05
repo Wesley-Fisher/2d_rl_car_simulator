@@ -15,7 +15,7 @@ from tensorflow import keras
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, ReLU
 from tensorflow.keras import initializers
-from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.optimizers import Adam, SGD
 from tensorflow.python.ops.gen_math_ops import is_nan 
 
 from .utilities import Utility
@@ -68,6 +68,9 @@ class Network:
         self.new_training_experiences = []
         self.training_experience = []
 
+        self.optimizer = Adam(learning_rate=self.settings.learning.alpha)
+        self.model.compile(self.optimizer, loss='mse')
+
     def freeze(self):
         self.frozen_model = self.model
     
@@ -99,9 +102,11 @@ class Network:
                a_angle, gradient_actor_angle, trainable_actor_angle
 
     def update_weights(self, step_size, gradients, trainable):
-        step_size = -step_size # For Adam. update_weights(+) -> Ascent
-        optimizer = Adam(learning_rate=step_size)
-        optimizer.apply_gradients(zip(gradients, trainable))
+        #step_size =  0.0# For Adam. update_weights(+) -> Ascent
+        #optimizer = Adam(learning_rate=step_size)
+        #gradients = [grad * step_size for grad in gradients]
+        #self.optimizer.le
+        self.optimizer.apply_gradients(zip(gradients, trainable))
         '''
         weights = self.model.get_weights()
         for i in range(0, len(gradients)):
@@ -109,6 +114,47 @@ class Network:
             weights[i] = weights[i] + dw
         self.model.set_weights(weights)
         '''
+
+    def build_epoch_targets(self, exp):
+        states = []
+        original = []
+        targets = []
+
+        gamma = self.settings.learning.gamma
+
+        for ex in exp:
+            s0 = ex.s0
+            states.append(s0)
+
+            pred0 = self.model(s0)[0]
+            original.append(pred0)
+
+            v0 = pred0[2]
+            s1 = ex.s1
+            v1 = self.model(s1)[0][2]
+            if ex.next_terminal:
+                v1 = 0.0
+
+            d = ex.r1 + gamma * v1 - v0
+
+            target_critic = ex.r1 + gamma * v1
+
+            def target_action(d, a, u):
+                sig = self.settings.statistics.sigma
+                integration_width = self.util.normal_int_width(sig)
+                d_prob_wrt_density = integration_width
+                d_density_wrt_u = self.util.normal_density_derivative(a, u, sig)
+                step = d * d_density_wrt_u
+
+                return a + step, step
+
+            target_actor_force, af_step = target_action(d, ex.a_force, pred0[0])
+            target_actor_angle, aa_step = target_action(d, ex.a_angle, pred0[1])
+
+            target = np.array([[target_critic, target_actor_force, target_actor_angle]])
+            targets.append(target)
+
+        return states, original, targets
 
     def train_sample(self, ex):
         results = SampleTrainingResults()
@@ -119,21 +165,48 @@ class Network:
 
         I = 1.0 #math.pow(gamma, ex.step_in_ep)
 
-        v0, gradient_critic, trainable_critic, \
-        a_force, gradient_actor_force, trainable_actor_force, \
-        a_angle, gradient_actor_angle, trainable_actor_angle = self.calculate_gradients(s0)
+        pred0 = self.model(s0)[0]
+
+        v0 = pred0[2]
         v1 = self.model(s1)[0][2]
         if ex.next_terminal:
             v1 = 0.0
 
-        results.v0.append(v0)
-        results.v1.append(v0)
-        results.a_force.append(a_force)
-        results.a_angle.append(a_angle)
-
-
         d = ex.r1 + gamma * v1 - v0
         c_step = float(d * alpha * I)
+
+        target_critic = ex.r1 + gamma * v1
+
+        def target_action(d, a, u):
+            sig = self.settings.statistics.sigma
+            integration_width = self.util.normal_int_width(sig)
+            d_prob_wrt_density = integration_width
+            d_density_wrt_u = self.util.normal_density_derivative(a, u, sig)
+            step = d * d_density_wrt_u
+
+            return a + step, step
+
+        target_actor_force, af_step = target_action(d, ex.a_force, pred0[0])
+        target_actor_angle, aa_step = target_action(d, ex.a_angle, pred0[1])
+
+        target = np.array([[target_critic, target_actor_force, target_actor_angle]])
+        self.model.fit(s0, target)
+
+        results.v0.append(v0)
+        results.v1.append(v1)
+        results.a_force.append(pred0[0])
+        results.a_angle.append(pred0[1])
+
+        '''
+        _, gradient_critic, trainable_critic, \
+        a_force, gradient_actor_force, trainable_actor_force, \
+        a_angle, gradient_actor_angle, trainable_actor_angle = self.calculate_gradients(s0)
+
+
+
+
+
+        
         self.update_weights(float(c_step), gradient_critic, trainable_critic)
 
         def update_action_weights(ex_a, a, gradients, trainables):
@@ -164,7 +237,7 @@ class Network:
     
         af_step = update_action_weights(ex.a_force, a_force, gradient_actor_force, trainable_actor_force)
         aa_step = update_action_weights(ex.a_angle, a_angle, gradient_actor_angle, trainable_actor_angle)
-
+        '''
 
         v0 = self.model(s0)[0][2]
         v1 = self.model(s1)[0][2]
@@ -184,9 +257,9 @@ class Network:
         return results
 
     def no_network_change(self, results, lim):
-        da_force = results.a_force[0] - results.a_force[1]
-        da_angle = results.a_angle[0] - results.a_angle[1]
-        dv = results.v0[1] - results.v0[0]
+        da_force = results.af_step
+        da_angle = results.aa_step
+        dv = results.c_step
 
         if (math.fabs(dv) + math.fabs(da_force) + math.fabs(da_angle)) < lim:
             return True
@@ -207,25 +280,47 @@ class Network:
         remove_indices = []
         idx = -1
         sample_results = []
-        for ex in self.training_experience:
-            idx = idx + 1
-            result = self.train_sample(ex)
 
-            for i in [0,1]:
-                if tf.math.is_nan(result.v0[i]):
-                    exit()
-                if tf.math.is_nan(result.v1[i]):
-                    exit()
-                if tf.math.is_nan(result.a_force[i]):
-                    exit()
-                if tf.math.is_nan(result.a_angle[i]):
-                    exit()
-            sample_results.append(result)
+        states, original, targets = self.build_epoch_targets(self.training_experience)
+
+        self.model.fit(np.array(states), np.array(targets))
+
+        new = self.model.predict(np.array(states))
+
+        sample_results= []
+        for orig, new in zip(original, new):
+            results = SampleTrainingResults()
+            results.c_step = float(new[0][2] - orig[2])
+            results.af_step = float(new[0][0] - orig[0])
+            results.aa_step = float(new[0][1] - orig[1])
+            sample_results.append(results)
+
+            bad = False
+            bad = bad or  tf.math.is_nan(new[0][0])
+            bad = bad or  tf.math.is_nan(new[0][1])
+            bad = bad or  tf.math.is_nan(new[0][2])
+
+            if bad:
+                exit()
+
 
         epoch_results = EpochTrainingResults()
         epoch_results.avg_c_step = statistics.mean([r.c_step for r in sample_results])
         epoch_results.avg_af_step = statistics.mean([r.af_step for r in sample_results])
         epoch_results.avg_aa_step = statistics.mean([r.aa_step for r in sample_results])
+
+        '''
+        for ex in self.training_experience:
+            idx = idx + 1
+
+            #result = self.train_sample(ex)
+
+            
+
+
+
+
+
 
         if self.settings.debug.profile_network:
             s = io.StringIO()
@@ -235,8 +330,8 @@ class Network:
             with open(self.settings._files.root_dir + "/debug/network_profile.txt", 'w') as handle:
                 handle.write(s.getvalue())
 
-        return sample_results, epoch_results
-
+        '''
+        return sample_results, EpochTrainingResults()
     def remove_samples(self, training_results):
         num_rem = 0
         remove_indices = []
@@ -268,21 +363,28 @@ class Network:
     def load_state(self):
         memory_dir = self.settings._files.root_dir + "/memory"
 
+        
         if self.settings.memory.load_saved_network:
-            network_file = memory_dir + "/model.h5"
-            self.model = keras.models.load_model(network_file)
-            print("Loaded Network")
+            try:
+                network_file = memory_dir + "/model.h5"
+                self.model = keras.models.load_model(network_file)
+                print("Loaded Network")
+            except OSError as e:
+                print("Could not load network from file")
 
         if self.settings.memory.load_saved_experience:
-            main_exp_file = memory_dir + "/experience.pk"
-            files = []
-            del_files = []
-            if self.settings.memory.merge_saved_experience:
-                files = [f for f in listdir(memory_dir) if isfile(join(memory_dir, f))]
-                files = [f for f in files if f.startswith('exp') and f.endswith('.pk')]
-                del_files = [f for f in files if f != main_exp_file]
-            else:
-                files = [main_exp_file]
+            try:
+                main_exp_file = memory_dir + "/experience.pk"
+                files = []
+                del_files = []
+                if self.settings.memory.merge_saved_experience:
+                    files = [f for f in listdir(memory_dir) if isfile(join(memory_dir, f))]
+                    files = [f for f in files if f.startswith('exp') and f.endswith('.pk')]
+                    del_files = [f for f in files if f != main_exp_file]
+                else:
+                    files = [main_exp_file]
+            except OSError as e:
+                print("Could not load memory from file")
         
         self.training_experience = []
         for file in files:
