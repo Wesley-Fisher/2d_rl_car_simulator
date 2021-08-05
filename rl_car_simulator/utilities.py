@@ -24,7 +24,7 @@ class Utility:
     
     def normal_int_width(self, sig):
         # Guarantee that density * width < 1.0
-        return math.sqrt(2 * math.pi) * sig * 0.1
+        return math.sqrt(2 * math.pi) * sig * 0.01
     
     def normal_int_prob(self, x, u, sig):
         density = self.normal_density(x,u,sig)

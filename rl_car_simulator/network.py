@@ -71,6 +71,10 @@ class Network:
         self.optimizer = Adam(learning_rate=self.settings.learning.alpha)
         self.model.compile(self.optimizer, loss='mse')
 
+    def compile(self):
+        self.optimizer = Adam(learning_rate=self.settings.learning.alpha)
+        self.model.compile(self.optimizer, loss='mse')
+
     def freeze(self):
         self.frozen_model = self.model
     
@@ -102,22 +106,32 @@ class Network:
                 v1 = 0.0
 
             d = ex.r1 + gamma * v1 - v0
+            #d = ex.r1 + ex.G
 
-            target_critic = ex.r1 + gamma * v1
-
+            target_critic = v0 + (ex.r1 + ex.G - v0)
             def target_action(d, a, u):
+                #print("%f, %f" % (a, u))
                 sig = self.settings.statistics.sigma
+                #print("sig: %f" % sig)
                 integration_width = self.util.normal_int_width(sig)
                 d_prob_wrt_density = integration_width
                 d_density_wrt_u = self.util.normal_density_derivative(a, u, sig)
-                step = d * d_density_wrt_u
-
+                #print("dd/du: %f" % float(d_density_wrt_u))
+                #print("v1: %f" % v1)
+                d = ex.r1 + gamma * v1 - v0
+                #print("d: %f" % float(d))
+                dir = math.copysign(1,d)
+                step = dir * d_density_wrt_u * d_prob_wrt_density * 0.1
+                #print("Step: %f" % step)
+                #print("New: %f" % float(a + step))
                 return a + step, step
 
             target_actor_force, af_step = target_action(d, ex.a_force, pred0[0])
             target_actor_angle, aa_step = target_action(d, ex.a_angle, pred0[1])
+    
+            #print("%f\t%f" % (af_step, aa_step))
 
-            target = np.array([[target_critic, target_actor_force, target_actor_angle]])
+            target = np.array([[target_actor_force, target_actor_angle, target_critic]])
             targets.append(target)
 
         return states, original, targets
