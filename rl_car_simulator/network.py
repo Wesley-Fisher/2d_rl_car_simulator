@@ -81,40 +81,6 @@ class Network:
     def add_experience(self, exp):
         self.new_training_experiences = self.new_training_experiences + exp
 
-    def calculate_gradients(self, state):
-        with tf.GradientTape() as tape:
-            v = self.model(state)[0][2]
-        trainable_critic = self.model.trainable_variables
-        gradient_critic = tape.gradient(v, trainable_critic)
-
-        with tf.GradientTape() as tape:
-            a_force = self.model(state)[0][0]
-        trainable_actor_force = self.model.trainable_variables
-        gradient_actor_force = tape.gradient(a_force, trainable_actor_force)
-
-        with tf.GradientTape() as tape:
-            a_angle = self.model(state)[0][1]
-        trainable_actor_angle = self.model.trainable_variables
-        gradient_actor_angle = tape.gradient(a_angle, trainable_actor_angle)
-        
-        return v, gradient_critic, trainable_critic, \
-               a_force, gradient_actor_force, trainable_actor_force, \
-               a_angle, gradient_actor_angle, trainable_actor_angle
-
-    def update_weights(self, step_size, gradients, trainable):
-        #step_size =  0.0# For Adam. update_weights(+) -> Ascent
-        #optimizer = Adam(learning_rate=step_size)
-        #gradients = [grad * step_size for grad in gradients]
-        #self.optimizer.le
-        self.optimizer.apply_gradients(zip(gradients, trainable))
-        '''
-        weights = self.model.get_weights()
-        for i in range(0, len(gradients)):
-            dw = step_size * gradients[i]
-            weights[i] = weights[i] + dw
-        self.model.set_weights(weights)
-        '''
-
     def build_epoch_targets(self, exp):
         states = []
         original = []
@@ -156,105 +122,6 @@ class Network:
 
         return states, original, targets
 
-    def train_sample(self, ex):
-        results = SampleTrainingResults()
-        s0 = ex.s0
-        s1 = ex.s1
-        gamma = self.settings.learning.gamma
-        alpha = self.settings.learning.alpha
-
-        I = 1.0 #math.pow(gamma, ex.step_in_ep)
-
-        pred0 = self.model(s0)[0]
-
-        v0 = pred0[2]
-        v1 = self.model(s1)[0][2]
-        if ex.next_terminal:
-            v1 = 0.0
-
-        d = ex.r1 + gamma * v1 - v0
-        c_step = float(d * alpha * I)
-
-        target_critic = ex.r1 + gamma * v1
-
-        def target_action(d, a, u):
-            sig = self.settings.statistics.sigma
-            integration_width = self.util.normal_int_width(sig)
-            d_prob_wrt_density = integration_width
-            d_density_wrt_u = self.util.normal_density_derivative(a, u, sig)
-            step = d * d_density_wrt_u
-
-            return a + step, step
-
-        target_actor_force, af_step = target_action(d, ex.a_force, pred0[0])
-        target_actor_angle, aa_step = target_action(d, ex.a_angle, pred0[1])
-
-        target = np.array([[target_critic, target_actor_force, target_actor_angle]])
-        self.model.fit(s0, target)
-
-        results.v0.append(v0)
-        results.v1.append(v1)
-        results.a_force.append(pred0[0])
-        results.a_angle.append(pred0[1])
-
-        '''
-        _, gradient_critic, trainable_critic, \
-        a_force, gradient_actor_force, trainable_actor_force, \
-        a_angle, gradient_actor_angle, trainable_actor_angle = self.calculate_gradients(s0)
-
-
-
-
-
-        
-        self.update_weights(float(c_step), gradient_critic, trainable_critic)
-
-        def update_action_weights(ex_a, a, gradients, trainables):
-
-            sig = self.settings.statistics.sigma
-            density = self.util.normal_density(ex_a, a, sig)
-            integration_width = self.util.normal_int_width(sig)
-            
-            prob = integration_width * density
-            prob_net = self.util.normal_int_prob(a, a, sig)
-            imp_sample_ratio = min(2.0, max(0.5, prob_net, prob))
-            if math.isnan(imp_sample_ratio):
-                imp_sample_ratio = 1.0
-
-            # Step = alpha * delta * I * ln(grad(prob)
-            #      = alpha * delta * I * grad(prob) / prob
-            # Grad(prob) = d-prob/d-weights
-            #            = d-prob/d-u * d-u/d-weights
-            #            = d-prob/d-density * d-density/d-u * d-u/d-weights
-            # d-u/d-weights <- Keras gradient update
-
-            d_prob_wrt_density = integration_width
-            d_density_wrt_u = self.util.normal_density_derivative(ex_a, a, sig)
-
-            actor_step = d * alpha * I * d_prob_wrt_density * d_density_wrt_u * imp_sample_ratio
-            self.update_weights(float(actor_step), gradients, trainables)
-            return float(actor_step)
-    
-        af_step = update_action_weights(ex.a_force, a_force, gradient_actor_force, trainable_actor_force)
-        aa_step = update_action_weights(ex.a_angle, a_angle, gradient_actor_angle, trainable_actor_angle)
-        '''
-
-        v0 = self.model(s0)[0][2]
-        v1 = self.model(s1)[0][2]
-        a = self.model(s0)[0][0:2]
-        a_force = a[0]
-        a_angle = a[1]
-
-        results.v0.append(v0)
-        results.v1.append(v0)
-        results.a_force.append(a_force)
-        results.a_angle.append(a_angle)
-
-        results.c_step = c_step
-        results.af_step = af_step
-        results.aa_tep = aa_step
-    
-        return results
 
     def no_network_change(self, results, lim):
         da_force = results.af_step
@@ -303,35 +170,13 @@ class Network:
             if bad:
                 exit()
 
-
         epoch_results = EpochTrainingResults()
         epoch_results.avg_c_step = statistics.mean([r.c_step for r in sample_results])
         epoch_results.avg_af_step = statistics.mean([r.af_step for r in sample_results])
         epoch_results.avg_aa_step = statistics.mean([r.aa_step for r in sample_results])
 
-        '''
-        for ex in self.training_experience:
-            idx = idx + 1
+        return sample_results, epoch_results
 
-            #result = self.train_sample(ex)
-
-            
-
-
-
-
-
-
-        if self.settings.debug.profile_network:
-            s = io.StringIO()
-            profiler.disable()
-            stats = pstats.Stats(profiler, stream=s).sort_stats('cumtime')
-            stats.print_stats()
-            with open(self.settings._files.root_dir + "/debug/network_profile.txt", 'w') as handle:
-                handle.write(s.getvalue())
-
-        '''
-        return sample_results, EpochTrainingResults()
     def remove_samples(self, training_results):
         num_rem = 0
         remove_indices = []
