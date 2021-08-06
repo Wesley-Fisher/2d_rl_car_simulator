@@ -72,9 +72,9 @@ class Network:
         out1 = Dense(3, kernel_initializer=ik, bias_initializer=ib)(layer)
         self.out = ReLU(negative_slope=1.0)(out1)
 
-        self.model = Model([self.input, self.advantage, self.target_prediction], self.out, name='actor_critic')
+        self._model = Model([self.input, self.advantage, self.target_prediction], self.out, name='actor_critic')
 
-        self.frozen_model = self.model
+        self.frozen_model = self._model
         self.new_training_experiences = []
         self.training_experience = []
 
@@ -82,11 +82,14 @@ class Network:
 
     def compile(self):
         self.optimizer = Adam(learning_rate=self.settings.learning.alpha)
-        self.model.add_loss(actor_critic_loss)
-        self.model.compile(self.optimizer)
+        self._model.add_loss(actor_critic_loss)
+        self._model.compile(self.optimizer)
+
+    def model(self, state):
+        return self._model((state, np.array([1,1]), np.array([0])))
 
     def freeze(self):
-        self.frozen_model = self.model
+        self.frozen_model = self._model
     
     def get(self, x):
         x = x.reshape((1,self.N))
@@ -107,12 +110,12 @@ class Network:
             s0 = ex.s0
             states.append(s0)
 
-            pred0 = self.model(s0)[0]
+            pred0 = self._model(s0)[0]
             original.append(pred0)
 
             v0 = pred0[2]
             s1 = ex.s1
-            v1 = self.model(s1)[0][2]
+            v1 = self._model(s1)[0][2]
             if ex.next_terminal:
                 v1 = 0.0
 
@@ -169,7 +172,7 @@ class Network:
         self.training_experience = self.training_experience + new_exp
 
     def fit_model(self, states, targets, advantages):
-        self.model.fit((np.array(states), np.array(targets), np.array(advantages)), verbose=0)
+        self._model.fit((np.array(states), np.array(targets), np.array(advantages)), verbose=0)
 
     def train_epoch(self):
 
@@ -185,7 +188,7 @@ class Network:
 
         self.fit_model(states, targets, advantages)
 
-        new = self.model.predict(np.array(states))
+        new = self._model.predict(np.array(states))
 
         sample_results= []
         for orig, new in zip(original, new):
@@ -235,8 +238,8 @@ class Network:
             pk.dump(self.training_experience, handle)
 
         network_file = memory_dir + "/model.h5"
-        #tf.keras.models.save_model(self.model, filepath=network_file)
-        self.model.save(network_file)
+        #tf.keras.models.save_model(self._model, filepath=network_file)
+        self._model.save(network_file)
 
     def load_state(self):
         memory_dir = self.settings._files.root_dir + "/memory"
@@ -245,7 +248,7 @@ class Network:
         if self.settings.memory.load_saved_network:
             try:
                 network_file = memory_dir + "/model.h5"
-                self.model = keras.models.load_model(network_file)
+                self._model = keras.models.load_model(network_file)
                 print("Loaded Network")
             except OSError as e:
                 print("Could not load network from file")
