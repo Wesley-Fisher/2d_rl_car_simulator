@@ -95,20 +95,45 @@ class Network:
         gauss_fac = 1.0 / (sig * math.sqrt(2*math.pi))
 
         def actor_critic_loss(output, pred, advantage):
+            # Output: network output: force, angle, value
+            # Pred: predicted target: used force, use angle, episode return
+            # Advantage: advantage: ex.r1 + gamma * pred(v1) - pred(v0)
             '''
             print("in-loss printouts")
             print(output)
             print(pred)
             print(advantage)
             '''
-            critic_loss = K.pow(advantage - output[0,2], 2)
+
+            # Want critic to predict episode return
+            critic_loss = K.pow(pred[0,2] - output[0,2], 2)
 
             def action_loss(act, pred):
+                # Heavy Influence: https://www.tensorflow.org/tutorials/reinforcement_learning/actor_critic
+                '''
+                Goal: change probability of action taken in direction of sign(advantage)
+                prob = integration_width * prob_density
+                density = normal_function = gauss_fac * exp(square((x-u)/sig))
+                let: x=action taken (model output to controller)
+                let: u=predicted action (model output during training)
+
+                Use log probabilities in loss function. We will decrease the loss
+                As:
+                - prob [= width * gauss_fac * exp(in_exponent)] increases
+                - log(prob) [= log(width) + in_exponent]   increases
+                - -log(prob) decreases
+                - we get closer to where we want to go
+                Then:
+                - multiple by advantage to control direction we want to go
+                - positive advantage: we do want to increase probability, etc
+                Why did I need to remove the negative sign? No idea, unless there is an undiscovered error
+                '''
                 delta = act - pred
                 expo = K.square(delta/sig)
                 density = gauss_fac * K.exp( expo )
                 #prob = density * width
-                loss = K.log(gauss_fac * width) + K.log(expo + 1e-3) * advantage
+                log_prob = K.log(gauss_fac * width) + expo
+                loss = log_prob * advantage
                 return loss
             force_loss = action_loss(output[0,0],pred[0,0])
             angle_loss = action_loss(output[0,1],pred[0,1])
@@ -143,6 +168,10 @@ class Network:
         v = float(tens[0][2])
         return [np.array([[a0], [a1], [v]])]
 
+    def predict_advantage(self, ex):
+        _, _, _, advantages = self.build_epoch_targets([ex])
+        return advantages[0]
+
     def freeze(self):
         self.frozen_model = self._model
     
@@ -172,9 +201,16 @@ class Network:
             v0 = float(pred0[2])
             v1 = float(pred1[2])
 
-            target_critic = float(v0 + (ex.r1 + ex.G - v0))
+            target_critic = ex.G#float(v0 + (ex.r1 + ex.G - v0))
 
-            advantage = float(ex.r1 + gamma * v1 - v0)
+            '''
+            if ex.next_terminal:
+                advantage = float(ex.r1 - v0)
+            else:
+                advantage = float(ex.r1 + gamma * v1 - v0)
+            '''
+            # 
+            advantage = float(ex.G - v0) #https://livebook.manning.com/book/deep-learning-and-the-game-of-go/chapter-12/46
             advantages.append(advantage)
 
             target = np.array([[ex.a_force, ex.a_angle, target_critic]])

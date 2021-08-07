@@ -286,12 +286,15 @@ class TestNetworkIntegration(unittest.TestCase):
 
         for i in range(0, 5):
             states, original, targets, advantages = net.build_epoch_targets(experience)
-            net.fit_model(states * 100, targets * 100, advantages * 100)
+            net.fit_model(states * 1000, targets * 1000, advantages * 1000)
             
             v0 = float(net.model(ex0.s0)[0][2])
             vM = float(net.model(exM.s0)[0][2])
             vF = float(net.model(exF.s0)[0][2])
 
+            # Note: can have some variance in results
+            #  with number of samples used, so may see
+            #  from other changes
             self.assertGreater(v0, v0_last)
             self.assertGreater(vM, vM_last)
             self.assertGreater(vF, vF_last)
@@ -361,9 +364,7 @@ class TestNetworkIntegration(unittest.TestCase):
         # of a few steps each
         for j in range(0, 5):
             states, original, targets, advantages = net.build_epoch_targets(all_exp)
-            net.fit_model(states * 100, targets * 100, advantages * 100)
-
-            #print_exp("Vals",all_exp, True)
+            net.fit_model(states * 200, targets * 200, advantages * 200)
 
             # Can't be as sure with training with both sets
             # So only test final results
@@ -411,7 +412,7 @@ class TestNetworkIntegration(unittest.TestCase):
             #print("Split round training %d" % (j+1))
             #print("a first: %f" % float(net.model(exG0.s0)[0][1] ))
             states, original, targets, advantages = net.build_epoch_targets(all_exp)
-            net.fit_model(states * 100, targets * 100, advantages * 100)
+            net.fit_model(states * 200, targets * 200, advantages * 200)
 
             #print_exp("Vals",all_exp, True)
 
@@ -419,9 +420,15 @@ class TestNetworkIntegration(unittest.TestCase):
             # So only test final results
             aG = float(net.model(exG0.s0)[0][1])
             aC = float(net.model(exC0.s0)[0][1])
+            vG0 = float(net.model(exG0.s0)[0][2])
+            vC0 = float(net.model(exC0.s0)[0][2])
+            vG1 = float(net.model(exG0.s1)[0][2])
+            vC1 = float(net.model(exC0.s1)[0][2])
+            advG = float(net.predict_advantage(exG0))
+            advC = float(net.predict_advantage(exC0))
             diff_G0 = abs(aG - AG)
             diff_C0 = abs(aC - AC)
-            #print("%f, %f\t->\t%f,%f" % (aG, aC,AG,AC))
+            print("(G,C): pred(%f, %f)->v0(%f,%f)->v1(%f,%f)->adv(%f,%f)->act(%f,%f)" % (aG,aC,vG0,vC0,vG1,vC1,advG,advC,AG,AC))
             
 
         

@@ -34,9 +34,9 @@ class ExperienceEngine:
                 dist_1 = dx1*dx1 + dy1*dy1
 
                 if dist_1 < dist_0:
-                    r += 0.001
+                    r += 0.000
                 else:
-                    r += -0.01
+                    r -= 0.000
 
         #print(r)
 
