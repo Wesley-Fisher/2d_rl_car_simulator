@@ -33,7 +33,7 @@ class TestNetworkIntegration(unittest.TestCase):
         settings.learning.max_episode_length = 200
         settings.physics.physics_timestep = 0.2
         settings.physics.control_timestep = 0.2
-        settings.learning.alpha = 1e-4
+        settings.learning.alpha = 1e-5
         cls.coll_exp_1, cls.network_1 = cls.generate_collision_processed_experience(settings)
         cls.goal_exp_1,             _ = cls.generate_goal_processed_experience(settings)
         cls.coll_exp_2,             _ = cls.generate_collision_processed_experience_turning(settings)
@@ -232,11 +232,14 @@ class TestNetworkIntegration(unittest.TestCase):
         experience = preprocessor.preprocess_episode(experience_raw)
         return experience, net
 
+    def get_network_copy(self):
+        net = Network(self.network_1.settings, self.network_1.N)
+        net.compile()
+        return net
+
     def test_collision_learning(self):
         experience = copy.deepcopy(self.coll_exp_1)
-        net = copy.deepcopy(self.network_1)
-        net.model = tf.keras.models.clone_model(self.network_1.model)
-        net.compile()
+        net = self.get_network_copy()
         
         ex0 = experience[0]
         exM = experience[int(len(experience)/2)]
@@ -249,9 +252,13 @@ class TestNetworkIntegration(unittest.TestCase):
         vM_last = float(net.model(exM.s0)[0][2])
         vF_last = float(net.model(exF.s0)[0][2])
 
+        v0 = float(net.model(ex0.s0)[0][2])
+        vM = float(net.model(exM.s0)[0][2])
+        vF = float(net.model(exF.s0)[0][2])
+
         for i in range(0, 5):
-            states, original, targets = net.build_epoch_targets(experience)
-            net.fit_model(states * 300, targets * 300)
+            states, original, targets, advantages = net.build_epoch_targets(experience)
+            net.fit_model(states * 100, targets * 100, advantages * 100)
             
             v0 = float(net.model(ex0.s0)[0][2])
             vM = float(net.model(exM.s0)[0][2])
@@ -267,9 +274,7 @@ class TestNetworkIntegration(unittest.TestCase):
 
     def test_goal_learning(self):
         experience = copy.deepcopy(self.goal_exp_1)
-        net = copy.deepcopy(self.network_1)
-        net.model = tf.keras.models.clone_model(self.network_1.model)
-        net.compile()
+        net = self.get_network_copy()
         
         ex0 = experience[0]
         exM = experience[int(len(experience)/2)]
@@ -280,9 +285,8 @@ class TestNetworkIntegration(unittest.TestCase):
         vF_last = float(net.model(exF.s0)[0][2])
 
         for i in range(0, 5):
-
-            states, original, targets = net.build_epoch_targets(experience)
-            net.fit_model(states * 300, targets * 300)
+            states, original, targets, advantages = net.build_epoch_targets(experience)
+            net.fit_model(states * 100, targets * 100, advantages * 100)
             
             v0 = float(net.model(ex0.s0)[0][2])
             vM = float(net.model(exM.s0)[0][2])
@@ -302,14 +306,11 @@ class TestNetworkIntegration(unittest.TestCase):
         settings.learning.alpha = 1e-3
         settings.learning.gamma = 0.2
         expGoal = copy.deepcopy(self.goal_exp_1)
-        net = copy.deepcopy(self.network_1)
-        net.settings = settings
-        net.model = tf.keras.models.clone_model(self.network_1.model)
-        net.compile()
+        net = self.get_network_copy()
 
         ex = expGoal[0]
-        states, original, targets = net.build_epoch_targets([ex])
-        net.fit_model(states * 500, targets * 500)
+        states, original, targets, advantages = net.build_epoch_targets([ex])
+        net.fit_model(states * 100, targets * 100, advantages * 100)
 
         v0 = float(net.model(ex.s0)[0][2])
         v1 = float(net.model(ex.s1)[0][2])
@@ -322,14 +323,11 @@ class TestNetworkIntegration(unittest.TestCase):
         settings.learning.alpha = 1e-3
         settings.learning.gamma = 0.2
         expColl = copy.deepcopy(self.coll_exp_1)
-        net = copy.deepcopy(self.network_1)
-        net.settings = settings
-        net.model = tf.keras.models.clone_model(self.network_1.model)
-        net.compile()
+        net = self.get_network_copy()
 
         ex = expColl[0]
-        states, original, targets = net.build_epoch_targets([ex])
-        net.fit_model(states * 500, targets * 500)
+        states, original, targets, advantages = net.build_epoch_targets([ex])
+        net.fit_model(states * 100, targets * 100, advantages * 100)
 
         v0 = float(net.model(ex.s0)[0][2])
         v1 = float(net.model(ex.s1)[0][2])
@@ -343,10 +341,7 @@ class TestNetworkIntegration(unittest.TestCase):
         settings.learning.gamma = 0.9
         expGoal = copy.deepcopy(self.goal_exp_1)
         expColl = copy.deepcopy(self.coll_exp_1)
-        net = copy.deepcopy(self.network_1)
-        net.settings = settings
-        net.model = tf.keras.models.clone_model(self.network_1.model)
-        net.compile()
+        net = self.get_network_copy()
         
         exG0 = expGoal[0]
         exGF = expGoal[-1]
@@ -365,8 +360,8 @@ class TestNetworkIntegration(unittest.TestCase):
         # Look for overall improvement in 5 iterations
         # of a few steps each
         for j in range(0, 5):
-            states, original, targets = net.build_epoch_targets(all_exp)
-            net.fit_model(states*100, targets*100)
+            states, original, targets, advantages = net.build_epoch_targets(all_exp)
+            net.fit_model(states * 100, targets * 100, advantages * 100)
 
             #print_exp("Vals",all_exp, True)
 
@@ -392,10 +387,7 @@ class TestNetworkIntegration(unittest.TestCase):
         settings.statistics.sigma = 0.5
         expGoal = copy.deepcopy(self.goal_exp_2)
         expColl = copy.deepcopy(self.coll_exp_2)
-        net = copy.deepcopy(self.network_1)
-        net.settings = settings
-        net.model = tf.keras.models.clone_model(self.network_1.model)
-        net.compile()
+        net = self.get_network_copy()
         
         exG0 = expGoal[0]
         exGF = expGoal[-1]
@@ -418,8 +410,8 @@ class TestNetworkIntegration(unittest.TestCase):
         for j in range(0, 5):
             #print("Split round training %d" % (j+1))
             #print("a first: %f" % float(net.model(exG0.s0)[0][1] ))
-            states, original, targets = net.build_epoch_targets(all_exp)
-            net.fit_model(states * 100, targets * 100)
+            states, original, targets, advantages = net.build_epoch_targets(all_exp)
+            net.fit_model(states * 100, targets * 100, advantages * 100)
 
             #print_exp("Vals",all_exp, True)
 

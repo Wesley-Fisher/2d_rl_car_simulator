@@ -62,10 +62,12 @@ class Network:
         self.target_prediction = Input(shape=(3,), name='target_in_layer')
         self.advantage = Input(shape=(1), name='advantage')
         
+        '''
         print("network in layers")
         print(self.input)
         print(self.target_prediction)
         print(self.advantage)
+        '''
 
         layer = Dense(WN, kernel_initializer=ik, bias_initializer=ib)(self.input)
         layer = ReLU(negative_slope=0.3)(layer)
@@ -90,6 +92,8 @@ class Network:
         sig = self.settings.statistics.sigma
         width = self.util.normal_int_width(sig)
 
+        gauss_fac = 1.0 / (sig * math.sqrt(2*math.pi))
+
         def actor_critic_loss(output, pred, advantage):
             '''
             print("in-loss printouts")
@@ -101,16 +105,17 @@ class Network:
 
             def action_loss(act, pred):
                 delta = act - pred
-                density = 1.0 / (sig * math.sqrt(2*math.pi)) * K.exp( K.square(delta/sig) )
-                prob = density * width
-                loss = K.log(prob + 1e-5) * advantage
+                expo = K.square(delta/sig)
+                density = gauss_fac * K.exp( expo )
+                #prob = density * width
+                loss = K.log(gauss_fac * width) + K.log(expo + 1e-3) * advantage
                 return loss
             force_loss = action_loss(output[0,0],pred[0,0])
             angle_loss = action_loss(output[0,1],pred[0,1])
 
             return critic_loss + force_loss + angle_loss
 
-        self.optimizer = Adam(learning_rate=self.settings.learning.alpha)
+        self.optimizer = Adam(learning_rate=self.settings.learning.alpha, clipnorm=1.0)
         loss = actor_critic_loss(self.out, self.target_prediction, self.advantage)
         self._model.add_loss(loss)
         self._model.compile(self.optimizer)
@@ -160,20 +165,19 @@ class Network:
             s0 = ex.s0
             states.append(s0)
 
-            pred0 = self._model(s0)[0]
+            pred0 = self.model(s0)[0]
+            pred1 = self.model(ex.s1)[0]
             original.append(pred0)
 
-            v0 = pred0[2]
-            a1 = ex.a
+            v0 = float(pred0[2])
+            v1 = float(pred1[2])
 
             target_critic = float(v0 + (ex.r1 + ex.G - v0))
 
             advantage = float(ex.r1 + gamma * v1 - v0)
             advantages.append(advantage)
 
-
             target = np.array([[ex.a_force, ex.a_angle, target_critic]])
-            #target = np.array([[1.0], [1.0], [2.0]])
             targets.append(target)
 
         return states, original, targets, advantages
@@ -196,21 +200,34 @@ class Network:
         self.new_training_experiences = []
         self.training_experience = self.training_experience + new_exp
 
-    def fit_model(self, states, targets, advantages):
-        states = np.array(states)
-        targets = np.array(targets)
-        targets = targets.reshape(1,3)
-        advantages = np.array(advantages)
+    def fit_model(self, states, targets, advantages, verbose=0):
+
+        def numpify(data, size):
+            N = len(data)
+            data = np.array(data)
+            data = data.reshape(N,size)
+            #data = np.array([data[0]])
+            #data = data.reshape()
+            return data
+
+        states = numpify(states, self.N)
+        targets = numpify(targets, 3)
+        advantages = numpify(advantages, 1)
+        data = (states, targets, advantages)
+        
         '''
         print("pre-fit data")
-        print(states)
+        #print(states)
         print(states.shape)
-        print(targets)
+        #print(targets)
         print(targets.shape)
-        print(advantages)
+        #print(advantages)
         print(advantages.shape)
+        #print(data)
         '''
-        self._model.fit((states, targets, advantages), verbose=2)
+        
+         
+        self._model.fit(data, verbose=verbose, batch_size=1)
 
     def train_epoch(self):
 
