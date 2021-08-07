@@ -10,13 +10,16 @@ import statistics
 import io
 import cProfile, pstats
 
+import tensorflow.compat.v1.keras.backend as K
 import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
 from tensorflow import keras
 from tensorflow.keras.models import Sequential, Model
 from tensorflow.keras.layers import Dense, ReLU, Input
 from tensorflow.keras import initializers
 from tensorflow.keras.optimizers import Adam, SGD
 from tensorflow.python.ops.gen_math_ops import is_nan 
+from tensorflow.keras import backend as K
 
 from .utilities import Utility
 
@@ -37,9 +40,6 @@ class SampleTrainingResults:
         self.c_step = 0.0
         self.af_step = 0.0
         self.aa_step = 0.0
-
-def actor_critic_loss(target, pred, advantage):
-    return 0.0
         
 
 class Network:
@@ -58,9 +58,14 @@ class Network:
         D = 2
 
         # https://ai.stackexchange.com/questions/18753/how-to-set-the-target-for-the-actor-in-a2c
-        self.advantage = Input(shape=[1], name='advantage')
-        self.target_prediction = Input(shape=[2], name='target')
-        self.input = Input(shape=(8))
+        self.input = Input(shape=(8), name='state')
+        self.target_prediction = Input(shape=(3,), name='target_in_layer')
+        self.advantage = Input(shape=(1), name='advantage')
+        
+        print("network in layers")
+        print(self.input)
+        print(self.target_prediction)
+        print(self.advantage)
 
         layer = Dense(WN, kernel_initializer=ik, bias_initializer=ib)(self.input)
         layer = ReLU(negative_slope=0.3)(layer)
@@ -72,7 +77,7 @@ class Network:
         out1 = Dense(3, kernel_initializer=ik, bias_initializer=ib)(layer)
         self.out = ReLU(negative_slope=1.0)(out1)
 
-        self._model = Model([self.input, self.advantage, self.target_prediction], self.out, name='actor_critic')
+        self._model = Model([self.input, self.target_prediction, self.advantage], self.out, name='actor_critic')
 
         self.frozen_model = self._model
         self.new_training_experiences = []
@@ -81,12 +86,57 @@ class Network:
         self.compile()
 
     def compile(self):
+
+        sig = self.settings.statistics.sigma
+        width = self.util.normal_int_width(sig)
+
+        def actor_critic_loss(output, pred, advantage):
+            '''
+            print("in-loss printouts")
+            print(output)
+            print(pred)
+            print(advantage)
+            '''
+            critic_loss = K.pow(advantage - output[0,2], 2)
+
+            def action_loss(act, pred):
+                delta = act - pred
+                density = 1.0 / (sig * math.sqrt(2*math.pi)) * K.exp( K.square(delta/sig) )
+                prob = density * width
+                loss = K.log(prob + 1e-5) * advantage
+                return loss
+            force_loss = action_loss(output[0,0],pred[0,0])
+            angle_loss = action_loss(output[0,1],pred[0,1])
+
+            return critic_loss + force_loss + angle_loss
+
         self.optimizer = Adam(learning_rate=self.settings.learning.alpha)
-        self._model.add_loss(actor_critic_loss)
+        loss = actor_critic_loss(self.out, self.target_prediction, self.advantage)
+        self._model.add_loss(loss)
         self._model.compile(self.optimizer)
 
     def model(self, state):
-        return self._model((state, np.array([1,1]), np.array([0])))
+        dummy_target = np.array([[1,1,1]])
+        dummy_advantage = np.array([[0]])
+        data = (state, dummy_target, dummy_advantage)
+
+        '''
+        print("Pred Dummies")
+        print(state)
+        print(state.shape)
+        print(dummy_target)
+        print(dummy_target.shape)
+        print(dummy_advantage)
+        print(dummy_advantage.shape)
+        print("data")
+        print(data)
+        '''
+        
+        tens = self._model.predict(data)
+        a0 = float(tens[0][0])
+        a1 = float(tens[0][1])
+        v = float(tens[0][2])
+        return [np.array([[a0], [a1], [v]])]
 
     def freeze(self):
         self.frozen_model = self._model
@@ -114,41 +164,16 @@ class Network:
             original.append(pred0)
 
             v0 = pred0[2]
-            s1 = ex.s1
-            v1 = self._model(s1)[0][2]
-            if ex.next_terminal:
-                v1 = 0.0
+            a1 = ex.a
 
-            d = ex.r1 + gamma * v1 - v0
-            #d = ex.r1 + ex.G
+            target_critic = float(v0 + (ex.r1 + ex.G - v0))
 
-            target_critic = v0 + (ex.r1 + ex.G - v0)
-            def target_action(d, a, u):
-                #print("%f, %f" % (a, u))
-                sig = self.settings.statistics.sigma
-                #print("sig: %f" % sig)
-                integration_width = self.util.normal_int_width(sig)
-                d_prob_wrt_density = integration_width
-                d_density_wrt_u = self.util.normal_density_derivative(a, u, sig)
-                #print("dd/du: %f" % float(d_density_wrt_u))
-                #print("v1: %f" % v1)
-                d = ex.r1 + gamma * v1 - v0 # Advantage
-                #print("d: %f" % float(d))
-                dir = math.copysign(1,d)
-                step = dir * d_density_wrt_u * d_prob_wrt_density * 0.1
-                step = d
-                #print("Step: %f" % step)
-                #print("New: %f" % float(a + step))
-                return a + step, step
-
-            #target_actor_force, af_step = target_action(d, ex.a_force, pred0[0])
-            #target_actor_angle, aa_step = target_action(d, ex.a_angle, pred0[1])
             advantage = float(ex.r1 + gamma * v1 - v0)
             advantages.append(advantage)
 
-            #print("%f\t%f" % (af_step, aa_step))
 
-            target = np.array([[1.0, 1.0, target_critic]])
+            target = np.array([[ex.a_force, ex.a_angle, target_critic]])
+            #target = np.array([[1.0], [1.0], [2.0]])
             targets.append(target)
 
         return states, original, targets, advantages
@@ -172,7 +197,20 @@ class Network:
         self.training_experience = self.training_experience + new_exp
 
     def fit_model(self, states, targets, advantages):
-        self._model.fit((np.array(states), np.array(targets), np.array(advantages)), verbose=0)
+        states = np.array(states)
+        targets = np.array(targets)
+        targets = targets.reshape(1,3)
+        advantages = np.array(advantages)
+        '''
+        print("pre-fit data")
+        print(states)
+        print(states.shape)
+        print(targets)
+        print(targets.shape)
+        print(advantages)
+        print(advantages.shape)
+        '''
+        self._model.fit((states, targets, advantages), verbose=2)
 
     def train_epoch(self):
 

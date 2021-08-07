@@ -45,11 +45,11 @@ class TestNetworkBasics(unittest.TestCase):
         advantages = []
         for state in states:
             s = np.array(state).reshape((1,len(state)))
-            target = np.array(net.model(s)[0])
-            print(target)
-            target[2] = target[2] + 0.5
+            target = net.model(s)[0]
+            #print(target)
+            target = np.array([[float(target[0])], [float(target[1])], [float(target[2])]])
             targets.append(target)
-            advantages.append(0.0)
+            advantages.append(float(target[2]) + 1.0)
 
         net.fit_model(states, targets, advantages)
 
@@ -61,17 +61,18 @@ class TestNetworkBasics(unittest.TestCase):
         targets = []
         for state in states:
             s = np.array(state).reshape((1,len(state)))
-            target = np.array(net.model(s)[0])
-            print(target)
-            target[2] = target[2] - 0.5
+            target = net.model(s)[0]
+            #print(target)
+            target = np.array([[float(target[0])], [float(target[1])], [float(target[2])]])
             targets.append(target)
+            advantages.append(float(target[2]) - 2.5) # May need to be a bigger - than the prev is a +?
 
-        net.fit_model(states, targets)
+        net.fit_model(states, targets, advantages)
         v1 = net.model(s_net)[0][2]
         self.assertTrue(float(v1) - float(v0) < 0.0)
 
 
-    def test_update_weights_actor(self):
+    def test_update_weights_actor_good(self):
         settings = Settings()
         world = WorldCreation(settings).get()
         preprocessor = ExperiencePreprocessor(settings)
@@ -83,39 +84,78 @@ class TestNetworkBasics(unittest.TestCase):
         net = Network(settings, len(s0))
 
         s_net = np.array(s0).reshape((1,len(s0)))
-        a0 = net.model(s_net)[0][0]
-
+        af0 = net.model(s_net)[0][0]
+        aa0 = net.model(s_net)[0][1]
         states = [s0]
 
-        # Positive Change
+        # Increase likelihoods
         targets = []
+        advantages = []
         for state in states:
             s = np.array(state).reshape((1,len(state)))
-            target = np.array(net.model(s)[0])
-            print(target)
-            target[0] = target[0] + 0.5
+            target = net.model(s)[0]
+            #print(target)
+            pred_force_0 = float(target[0])
+            pred_angle_0 = float(target[1])
+
+            # Pretend that: 
+            #  - 'actual' force used was greater than current
+            #  - 'actual' angle used was lower than current
+            #  - advantage high
+            # Should see actions be more probable
+            target = np.array([[pred_force_0 + 0.5], [pred_angle_0 - 0.5], [float(target[2])]])
             targets.append(target)
+            advantages.append(float(target[2]) + 5.0)
 
-        net.fit_model(states, targets)
+        net.fit_model(states, targets, advantages)
+        af1 = net.model(s_net)[0][0]
+        aa1 = net.model(s_net)[0][1]
 
-        a1 = net.model(s_net)[0][0]
-        self.assertTrue(float(a1) - float(a0) > 0.0)
+        self.assertGreater(float(af1), float(af0))
+        self.assertLess(float(aa1), float(aa0))
 
-        a0 = a1
-        # Negative Change
+
+    def test_update_weights_actor_bad(self):
+        settings = Settings()
+        world = WorldCreation(settings).get()
+        preprocessor = ExperiencePreprocessor(settings)
+        experience = ExperienceEngine(settings, world, preprocessor)
+        physics = PhysicsEngine(settings, world, experience)
+        cs = CarState()
+        car = Car(settings, cs)
+        s0 = physics.get_car_state(car)
+        net = Network(settings, len(s0))
+
+        s_net = np.array(s0).reshape((1,len(s0)))
+        af0 = net.model(s_net)[0][0]
+        aa0 = net.model(s_net)[0][1]
+        states = [s0]
+
+        # Decrease likelihoods
         targets = []
+        advantages = []
         for state in states:
             s = np.array(state).reshape((1,len(state)))
-            target = np.array(net.model(s)[0])
-            print(target)
-            target[0] = target[0] - 0.5
+            target = net.model(s)[0]
+            #print(target)
+            pred_force_0 = float(target[0])
+            pred_angle_0 = float(target[1])
+
+            # Pretend that: 
+            #  - 'actual' force used was greater than current
+            #  - 'actual' angle used was lower than current
+            #  - advantage low
+            # Should see actions be less probable
+            target = np.array([[pred_force_0 + 0.5], [pred_angle_0 - 0.5], [float(target[2])]])
             targets.append(target)
+            advantages.append(float(target[2]) - 5.0)
 
-        net.fit_model(states, targets)
+        net.fit_model(states, targets, advantages)
+        af1 = net.model(s_net)[0][0]
+        aa1 = net.model(s_net)[0][1]
 
-        a1 = net.model(s_net)[0][0]
-        self.assertTrue(float(a1) - float(a0) < 0.0)
-
+        self.assertLess(float(af1), float(af0))
+        self.assertGreater(float(aa1), float(aa0))
 
     def test_gradient_ascent_critic(self):
         settings = Settings()
@@ -135,14 +175,16 @@ class TestNetworkBasics(unittest.TestCase):
 
         for i in range(0, 25):
             targets = []
+            advantages = []
             for state in states:
                 s = np.array(state).reshape((1,len(state)))
                 target = np.array(net.model(s)[0])
-                print(target)
-                target[2] = target[2] + 0.5
+                #print(target)
+                target = np.array([[float(target[0])], [float(target[1])], [float(target[2])]])
                 targets.append(target)
+                advantages.append(float(target[2]) + 1.0)
 
-            net.fit_model(states, targets)
+            net.fit_model(states, targets, advantages)
 
             v1 = net.model(s_net)[0][2]
             self.assertTrue(float(v1) - float(v0) > 0.0)
