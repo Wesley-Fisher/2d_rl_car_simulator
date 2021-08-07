@@ -71,12 +71,12 @@ class PhysicsEngine:
 
         v = v + (car.controls.force - v*self.settings.car_properties.fric) *  dt / self.settings.car_properties.mass
 
-        car.state.dh = v * car.controls.steer
-        car.state.h = car.state.h + car.state.dh * dt 
+        car.state.dh = float(v * car.controls.steer)
+        car.state.h = float(car.state.h + car.state.dh * dt) 
 
-        car.state.v = v
-        car.state.x = car.state.x + car.state.v * math.cos(car.state.h) * dt
-        car.state.y = car.state.y + car.state.v * math.sin(car.state.h) * dt
+        car.state.v = float(v)
+        car.state.x = float(car.state.x + car.state.v * math.cos(car.state.h) * dt)
+        car.state.y = float(car.state.y + car.state.v * math.sin(car.state.h) * dt)
 
     def sensors_step(self):
         for car in self.world.all_cars:
@@ -105,12 +105,7 @@ class PhysicsEngine:
         dy = car.goal[1] - car.state.y
         dist = math.sqrt(dx*dx + dy*dy)
         head = math.atan2(dy, dx)
-        base_state = np.array([car.state.x,
-                               car.state.y,
-                               car.state.h,
-                               dist, # Distance to goal
-                               head, # Heading to goal])
-                                ])
+        base_state = np.array([car.state.x, car.state.y,car.state.h,dist,head])
 
         N = len(self.settings.car_properties.lidar_angles)
         lidar_state = np.zeros((N))

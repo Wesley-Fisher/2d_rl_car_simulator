@@ -100,9 +100,13 @@ class Graphics:
     def draw_car(self, frame, car, color):
         # Car Body
         corners = car.get_corners()
-        corners = np.concatenate(corners, axis=1).T
-        corners = (corners * self.settings.graphics.pixels_per_m).astype(np.int32)
-        cv2.fillPoly(frame, [corners], color)
+        #corners = np.concatenate(corners, axis=1).T
+        #corners = (corners * self.settings.graphics.pixels_per_m).astype(np.int32)
+        use_corners = []
+        for corner in corners:
+            #print(corner)
+            use_corners.append((corner * self.settings.graphics.pixels_per_m).astype(np.int32))
+        cv2.fillPoly(frame, [np.array(use_corners)], color)
 
         # Windshield
         corners = car.get_windshield_corners()

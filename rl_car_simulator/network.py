@@ -357,7 +357,7 @@ class Network:
             try:
                 network_file = memory_dir + "/model.h5"
                 self.graph = tf.compat.v1.Graph()
-                self._model = keras.models.load_model(network_file, custom_objects={'loss': actor_critic_loss(self.out, self.target_prediction, self.advantage)})
+                self._model = keras.models.load_model(network_file)
                 self.compile()
                 self.freeze()
                 print("Loaded Network")

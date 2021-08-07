@@ -63,7 +63,9 @@ class Car:
         corners = []
         for lr, fb in [(1.0, 1.0),(1.0, -1.0),(-1.0, -1.0),(-1.0, 1.0)]:
             delta = np.array([[fb*dl], [lr*dw]])
-            corner = c + np.dot(R, delta)
+            dir = np.dot(R, delta)
+            corner = c + dir
+            corner = corner.reshape(1,2)
             corners.append(corner)
         return corners
 

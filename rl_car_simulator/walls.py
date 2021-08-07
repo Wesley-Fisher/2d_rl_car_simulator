@@ -16,7 +16,7 @@ class Wall:
     
     def point_is_bounded(self, x):
         x = x.reshape(-1)
-        
+
         v1 = x - self.x1
         a = np.dot(v1, self.inFrom1)
 
