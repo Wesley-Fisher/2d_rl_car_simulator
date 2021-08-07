@@ -160,7 +160,7 @@ class Network:
         dummy_advantage = np.array([[0]])
         data = (state, dummy_target, dummy_advantage)
 
-        
+        '''
         print("Pred Dummies")
         print(state)
         print(state.shape)
@@ -170,6 +170,7 @@ class Network:
         print(dummy_advantage.shape)
         print("data")
         print(data)
+        '''
         
         
         if model is None:
@@ -347,6 +348,8 @@ class Network:
         self._model.save(network_file)
 
     def load_state(self):
+        if self.settings._files.root_dir is None:
+            return
         memory_dir = self.settings._files.root_dir + "/memory"
 
         

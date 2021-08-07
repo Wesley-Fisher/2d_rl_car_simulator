@@ -47,14 +47,14 @@ class TestNetworkBasics(unittest.TestCase):
             s = np.array(state).reshape((1,len(state)))
             target = net.model(s)[0]
             #print(target)
-            target = np.array([[float(target[0])], [float(target[1])], [float(target[2])]])
+            target = np.array([[float(target[0])], [float(target[1])], [float(target[2]) + 1.0]])
             targets.append(target)
-            advantages.append(float(target[2]) + 1.0)
+            advantages.append(float(target[2]))
 
         net.fit_model(states, targets, advantages)
 
         v1 = net.model(s_net)[0][2]
-        self.assertTrue(float(v1) - float(v0) > 0.0)
+        self.assertGreater(float(v1), float(v0))
 
         v0 = v1
         # Negative Change
@@ -63,13 +63,13 @@ class TestNetworkBasics(unittest.TestCase):
             s = np.array(state).reshape((1,len(state)))
             target = net.model(s)[0]
             #print(target)
-            target = np.array([[float(target[0])], [float(target[1])], [float(target[2])]])
+            target = np.array([[float(target[0])], [float(target[1])], [float(target[2]) - 1.0]])
             targets.append(target)
-            advantages.append(float(target[2]) - 2.5) # May need to be a bigger - than the prev is a +?
+            advantages.append(float(target[2])) # May need to be a bigger - than the prev is a +?
 
         net.fit_model(states, targets, advantages)
         v1 = net.model(s_net)[0][2]
-        self.assertTrue(float(v1) - float(v0) < 0.0)
+        self.assertLess(float(v1),float(v0))
 
 
     def test_update_weights_actor_good(self):
@@ -180,9 +180,9 @@ class TestNetworkBasics(unittest.TestCase):
                 s = np.array(state).reshape((1,len(state)))
                 target = np.array(net.model(s)[0])
                 #print(target)
-                target = np.array([[float(target[0])], [float(target[1])], [float(target[2])]])
+                target = np.array([[float(target[0])], [float(target[1])], [float(target[2]) + 1.0]])
                 targets.append(target)
-                advantages.append(float(target[2]) + 1.0)
+                advantages.append(float(target[2]))
 
             net.fit_model(states, targets, advantages)
 
