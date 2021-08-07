@@ -80,22 +80,24 @@ class HardCodedController(Controller):
         return CarControls(self.f, self.a, 1.0, 1.0)
 
 class RandomController(Controller):
-    def __init__(self, settings, bias_range=2, step=0.5):
+    def __init__(self, settings, force_bias_range=2, force_step=0.5, angle_bias_range=0.5, angle_step=0.1):
         Controller.__init__(self, settings)
         self.settings = settings
         self.a = 0.0
         self.f = 0.0
-        self.bias_range = bias_range
-        self.step = step
+        self.force_bias_range = force_bias_range
+        self.force_step = force_step
+        self.angle_bias_range = angle_bias_range
+        self.angle_step = angle_step
         self.reset()
 
     def reset(self):
-        self.a = random.uniform(-self.bias_range, self.bias_range)
-        self.f = random.uniform(-self.bias_range, self.bias_range)
+        self.a = random.uniform(-self.angle_bias_range, self.angle_bias_range)
+        self.f = random.uniform(-self.force_bias_range, self.force_bias_ranges)
     
     def get_controls(self, state):
-        self.a = self.a + random.gauss(0, self.step * self.settings.physics.control_timestep)
-        self.f = self.f + random.gauss(0, self.step * self.settings.physics.control_timestep)
+        self.a = self.a + random.gauss(0, self.angle_step * self.settings.physics.control_timestep)
+        self.f = self.f + random.gauss(0, self.force_step * self.settings.physics.control_timestep)
         # Stick to default probability for now
         return CarControls(self.f, self.a, self.stat_p, self.stat_p)
 
@@ -155,8 +157,10 @@ class ExplorationController(Controller):
         Controller.__init__(self, settings)
         self.settings = settings
         self.base = base
-        self.rnd = RandomController(settings, self.settings.exploration.bias_range,
-                                              self.settings.exploration.step)
+        self.rnd = RandomController(settings, self.settings.exploration.force_bias_range,
+                                              self.settings.exploration.force_step,
+                                              self.settings.exploration.angle_bias_range,
+                                              self.settings.exploration.angle_step)
 
     def reset(self):
         self.rnd.reset

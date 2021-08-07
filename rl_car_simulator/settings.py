@@ -130,13 +130,17 @@ class FeedbackCar:
 
 class Exploration:
     def __init__(self, config):
-        self.bias_range = float(config.get("bias_range", 0.5))
-        self.step = float(config.get("step", 0.1))
+        self.force_bias_range = float(config.get("force_bias_range", 0.5))
+        self.force_step = float(config.get("force_step", 0.1))
+        self.angle_bias_range = float(config.get("angle_bias_range", 0.1))
+        self.angle_step = float(config.get("angle_step", 0.01))
     
     def write(self):
         config = {}
-        config["bias_range"] = self.bias_range
-        config["step"] = self.step
+        config["force_bias_range"] = self.force_bias_range
+        config["force_step"] = self.force_step
+        config["angle_bias_range"] = self.angle_bias_range
+        config["angle_step"] = self.angle_step
         return config
 
 class Physics:
@@ -153,7 +157,7 @@ class Physics:
 class Preprocessing:
     def __init__(self, config):
         self.gamma = float(config.get("gamma", 0.9))
-        self.use_types = config.get("use_types", ["Feedback", "Keyboard"])
+        self.use_types = config.get("use_types", ["Feedback", "Keyboard", "Network", "NetworkExploration"])
         self.subsample = max(int(config.get("subsample", 2)),1)
     
     def write(self):
@@ -167,7 +171,7 @@ class Learning:
     def __init__(self, config):
         self.gamma = float(config.get("gamma", 0.9999))
         self.alpha = float(config.get("alpha", 1e-3))
-        self.max_episode_length = float(config.get("max_ep_length", 100))
+        self.max_episode_length = float(config.get("max_ep_length", 150))
 
     def write(self):
         config = {}
