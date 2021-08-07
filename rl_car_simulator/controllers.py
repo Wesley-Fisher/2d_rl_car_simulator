@@ -93,7 +93,7 @@ class RandomController(Controller):
 
     def reset(self):
         self.a = random.uniform(-self.angle_bias_range, self.angle_bias_range)
-        self.f = random.uniform(-self.force_bias_range, self.force_bias_ranges)
+        self.f = random.uniform(-self.force_bias_range, self.force_bias_range)
     
     def get_controls(self, state):
         self.a = self.a + random.gauss(0, self.angle_step * self.settings.physics.control_timestep)

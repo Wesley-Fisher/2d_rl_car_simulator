@@ -97,7 +97,6 @@ class GameEngine:
             t_loop_start = self.util.now()
 
             if self.util.now() - t_last_controls > self.settings.physics.control_timestep:
-                self.network.freeze()
                 self.physics.full_control_sensor_step()
 
                 t_last_controls = self.util.now()
@@ -137,6 +136,7 @@ class GameEngine:
                 self.train_only = False
 
             print("Starting epoch on %d samples" % l_exp)
+            self.network.freeze()
 
             sample_results, epoch_results = self.network.train_epoch()
             num_rem = self.network.remove_samples(sample_results)
