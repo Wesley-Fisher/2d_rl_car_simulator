@@ -12,7 +12,9 @@ class Utility:
     def rot(self, r):
         c = np.cos(r)
         s = np.sin(r)
-        return np.array([[c,-s], [s,c]])
+        rot = np.array([[c,-s], [s,c]])
+        rot = rot.reshape((2,2))
+        return rot
 
     def normal_density(self, x, u, sig):
         fac = 1.0 / (sig * math.sqrt(2*math.pi))

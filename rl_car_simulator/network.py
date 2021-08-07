@@ -48,31 +48,24 @@ class Network:
         self.N = N
         self.util = Utility()
 
-        
-        ik = initializers.RandomNormal(stddev=0.1, seed=1)
-        ib = initializers.RandomNormal(stddev=0.1, seed=2)
-
-        W = 0.5
-        WN = int(W*self.N + 1)
-
-        D = 2
+        self.W = 0.5
+        self.D = 2
 
         # https://ai.stackexchange.com/questions/18753/how-to-set-the-target-for-the-actor-in-a2c
+
+        # MODEL
+        ik = initializers.RandomNormal(stddev=0.1, seed=1)
+        ib = initializers.RandomNormal(stddev=0.1, seed=2)
+        WN = int(self.W*self.N + 1)
+
         self.input = Input(shape=(8), name='state')
         self.target_prediction = Input(shape=(3,), name='target_in_layer')
         self.advantage = Input(shape=(1), name='advantage')
-        
-        '''
-        print("network in layers")
-        print(self.input)
-        print(self.target_prediction)
-        print(self.advantage)
-        '''
 
         layer = Dense(WN, kernel_initializer=ik, bias_initializer=ib)(self.input)
         layer = ReLU(negative_slope=0.3)(layer)
 
-        for i in range(0, D):
+        for i in range(0, self.D):
             layer = Dense(WN, kernel_initializer=ik, bias_initializer=ib)(layer)
             layer = ReLU(negative_slope=0.3)(layer)
 
@@ -81,13 +74,29 @@ class Network:
 
         self._model = Model([self.input, self.target_prediction, self.advantage], self.out, name='actor_critic')
 
-        self.frozen_model = self._model
-        self.new_training_experiences = []
-        self.training_experience = []
+        '''
+        print("network in layers")
+        print(self.input)
+        print(self.target_prediction)
+        print(self.advantage)
+        '''
+        self.frozen_model = tf.keras.models.clone_model(self._model)
+        self.session = None
+        self.graph = None
+
+        if self.settings.memory.load_saved_network:
+            self.load_state()
 
         self.compile()
+        self.freeze()
+        
+        self.new_training_experiences = []
+        self.training_experience = []
+        
+
 
     def compile(self):
+        # LOSS AND OPTIMIZATION
 
         sig = self.settings.statistics.sigma
         width = self.util.normal_int_width(sig)
@@ -140,17 +149,18 @@ class Network:
 
             return critic_loss + force_loss + angle_loss
 
-        self.optimizer = Adam(learning_rate=self.settings.learning.alpha, clipnorm=1.0)
+        optimizer = Adam(learning_rate=self.settings.learning.alpha, clipnorm=1.0)
         loss = actor_critic_loss(self.out, self.target_prediction, self.advantage)
         self._model.add_loss(loss)
-        self._model.compile(self.optimizer)
+        self._model.compile(optimizer)
 
-    def model(self, state):
+
+    def model(self, state, model=None):
         dummy_target = np.array([[1,1,1]])
         dummy_advantage = np.array([[0]])
         data = (state, dummy_target, dummy_advantage)
 
-        '''
+        
         print("Pred Dummies")
         print(state)
         print(state.shape)
@@ -160,9 +170,12 @@ class Network:
         print(dummy_advantage.shape)
         print("data")
         print(data)
-        '''
         
-        tens = self._model.predict(data)
+        
+        if model is None:
+            tens = self._model.predict(data)
+        else:
+            tens = model.predict(data)
         a0 = float(tens[0][0])
         a1 = float(tens[0][1])
         v = float(tens[0][2])
@@ -173,11 +186,12 @@ class Network:
         return advantages[0]
 
     def freeze(self):
-        self.frozen_model = self._model
+        self.frozen_model = tf.keras.models.clone_model(self._model)
+        self.frozen_model.build((None, self.N))
     
     def get(self, x):
         x = x.reshape((1,self.N))
-        return self.frozen_model.predict(x)
+        return self.model(x, self.frozen_model)
     
     def add_experience(self, exp):
         self.new_training_experiences = self.new_training_experiences + exp
@@ -339,10 +353,16 @@ class Network:
         if self.settings.memory.load_saved_network:
             try:
                 network_file = memory_dir + "/model.h5"
-                self._model = keras.models.load_model(network_file)
+                self.graph = tf.compat.v1.Graph()
+                self._model = keras.models.load_model(network_file, custom_objects={'loss': actor_critic_loss(self.out, self.target_prediction, self.advantage)})
+                self.compile()
+                self.freeze()
                 print("Loaded Network")
             except OSError as e:
                 print("Could not load network from file")
+
+        self.compile()
+        self.freeze()
 
         if self.settings.memory.load_saved_experience:
             try:
