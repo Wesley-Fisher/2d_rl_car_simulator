@@ -1,6 +1,9 @@
 from logging import root
 import yaml
 
+class CONSTANTS:
+    sigma = 0.1
+
 
 class ApplicationSettings:
     def __init__(self, config):

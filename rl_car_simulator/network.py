@@ -1,4 +1,5 @@
 import math
+from rl_car_simulator.settings import CONSTANTS
 from rl_car_simulator.utilities import Utility
 import numpy as np
 import pickle as pk
@@ -40,20 +41,18 @@ class SampleTrainingResults:
         self.c_step = 0.0
         self.af_step = 0.0
         self.aa_step = 0.0
-        
 
-class Network:
-    def __init__(self, settings, N):
+
+class MyModel:
+    def __init__(self, settings,N):
         self.settings = settings
         self.N = N
         self.util = Utility()
-
-        self.W = 0.5
-        self.D = 2
-
         # https://ai.stackexchange.com/questions/18753/how-to-set-the-target-for-the-actor-in-a2c
 
-        # MODEL
+        # MODEL NETWORK
+        self.W = 0.5
+        self.D = 2
         ik = initializers.RandomNormal(stddev=0.1, seed=1)
         ib = initializers.RandomNormal(stddev=0.1, seed=2)
         WN = int(self.W*self.N + 1)
@@ -73,35 +72,13 @@ class Network:
         self.out = ReLU(negative_slope=1.0)(out1)
 
         self._model = Model([self.input, self.target_prediction, self.advantage], self.out, name='actor_critic')
-
-        '''
-        print("network in layers")
-        print(self.input)
-        print(self.target_prediction)
-        print(self.advantage)
-        '''
-        self.frozen_model = tf.keras.models.clone_model(self._model)
-        self.session = None
-        self.graph = None
-
-        if self.settings.memory.load_saved_network:
-            self.load_state()
-
-        self.compile()
-        self.freeze()
-        
-        self.new_training_experiences = []
-        self.training_experience = []
-        
-
+        self.optimizer = None
 
     def compile(self):
         # LOSS AND OPTIMIZATION
 
         sig = self.settings.statistics.sigma
-        width = self.util.normal_int_width(sig)
-
-        gauss_fac = 1.0 / (sig * math.sqrt(2*math.pi))
+        
 
         def actor_critic_loss(output, pred, advantage):
             # Output: network output: force, angle, value
@@ -137,6 +114,10 @@ class Network:
                 - positive advantage: we do want to increase probability, etc
                 Why did I need to remove the negative sign? No idea, unless there is an undiscovered error
                 '''
+                sig = CONSTANTS.sigma
+                width = self.util.normal_int_width(sig)
+                gauss_fac = 1.0 / (sig * math.sqrt(2*math.pi))
+
                 delta = act - pred
                 expo = K.square(delta/sig)
                 density = gauss_fac * K.exp( expo )
@@ -149,11 +130,49 @@ class Network:
 
             return critic_loss + force_loss + angle_loss
 
-        optimizer = Adam(learning_rate=self.settings.learning.alpha, clipnorm=1.0)
+        self.optimizer = Adam(learning_rate=self.settings.learning.alpha, clipnorm=1.0)
         loss = actor_critic_loss(self.out, self.target_prediction, self.advantage)
         self._model.add_loss(loss)
-        self._model.compile(optimizer)
+        self._model.compile(self.optimizer)
+    
+    def predict(self, data):
+        return self._model.predict(data)
+    
+    def fit(self, data, verbose, batch_size=1):
+        self._model.fit(data, verbose=verbose, batch_size=batch_size)
 
+
+class Network:
+    def __init__(self, settings, N):
+        self.settings = settings
+        self.N = N
+        self.util = Utility()
+
+        # MODEL
+        self._model = MyModel(self.settings, N)
+        self.frozen_model = MyModel(self.settings, N)
+
+        '''
+        print("network in layers")
+        print(self.input)
+        print(self.target_prediction)
+        print(self.advantage)
+        '''
+        self.session = None
+        self.graph = None
+
+        if self.settings.memory.load_saved_network:
+            self.load_state()
+
+        self.compile()
+        self.freeze()
+        
+        self.new_training_experiences = []
+        self.training_experience = []
+        
+    def compile(self):
+        self._model.compile()
+        self.frozen_model.compile()
 
     def model(self, state, model=None):
         dummy_target = np.array([[1,1,1]])
@@ -172,7 +191,6 @@ class Network:
         print(data)
         '''
         
-        
         if model is None:
             tens = self._model.predict(data)
         else:
@@ -187,8 +205,7 @@ class Network:
         return advantages[0]
 
     def freeze(self):
-        self.frozen_model = tf.keras.models.clone_model(self._model)
-        self.frozen_model.build((None, self.N))
+        self.frozen_model._model.set_weights(self._model._model.get_weights())
     
     def get(self, x):
         x = x.reshape((1,self.N))
@@ -345,7 +362,7 @@ class Network:
 
         network_file = memory_dir + "/model.h5"
         #tf.keras.models.save_model(self._model, filepath=network_file)
-        self._model.save(network_file)
+        self._model._model.save(network_file)
 
     def load_state(self):
         if self.settings._files.root_dir is None:
@@ -357,7 +374,7 @@ class Network:
             try:
                 network_file = memory_dir + "/model.h5"
                 self.graph = tf.compat.v1.Graph()
-                self._model = keras.models.load_model(network_file)
+                self._model._model = keras.models.load_model(network_file)
                 self.compile()
                 self.freeze()
                 print("Loaded Network")
