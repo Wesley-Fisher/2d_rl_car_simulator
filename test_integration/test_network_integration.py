@@ -234,7 +234,7 @@ class TestNetworkIntegration(unittest.TestCase):
 
     def get_network_copy(self):
         net = Network(self.network_1.settings, self.network_1.N)
-        net.compile()
+        #net.compile()
         return net
 
     def test_collision_learning(self):

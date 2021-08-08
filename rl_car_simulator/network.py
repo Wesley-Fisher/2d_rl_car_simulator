@@ -21,6 +21,7 @@ from tensorflow.keras import initializers
 from tensorflow.keras.optimizers import Adam, SGD
 from tensorflow.python.ops.gen_math_ops import is_nan 
 from tensorflow.keras import backend as K
+from tensorflow.python.keras.backend import set_session
 
 from .utilities import Utility
 
@@ -43,13 +44,67 @@ class SampleTrainingResults:
         self.aa_step = 0.0
 
 
+SIG = CONSTANTS.sigma
+WIDTH = Utility().normal_int_width(SIG)
+GAUSS_FRAC = 1.0 / (SIG * math.sqrt(2*math.pi))
+
 class MyModel:
-    def __init__(self, settings,N):
+    def __init__(self, settings,N, name):
         self.settings = settings
         self.N = N
+        self.name = name
         self.util = Utility()
-        # https://ai.stackexchange.com/questions/18753/how-to-set-the-target-for-the-actor-in-a2c
 
+        self.graph = tf.Graph()
+        self.session = tf.compat.v1.Session(graph=self.graph)
+
+        self.input = None
+        self.target_prediction = None
+        self.advantage = None
+        self.out = None
+        self._model = None
+        self.optimizer=None
+
+        with self.graph.as_default():
+            set_session(self.session)
+            self.make_model()
+            self.compile()
+
+    def load_model(self, file):
+        graph = tf.Graph()
+        sess = tf.compat.v1.Session(graph=graph)
+        try:
+            with graph.as_default():
+                set_session(sess)
+                model = keras.models.load_model(file)
+            self.session.close()
+            self.graph = graph
+            self.session = sess
+            with self.graph.as_default():
+                set_session(self.session)
+                self._model = model
+                self.handle_new_model()
+        except OSError as e:
+            raise e
+
+    def handle_new_model(self):
+        inputs = self._model.inputs
+        self.input = inputs[0]
+        self.target_prediction = inputs[1]
+        self.advantage = inputs[2]
+        print(self.input)
+        print(self.target_prediction)
+        print(self.advantage)
+        self.out = self._model.output
+        self._model = Model([self.input, self.target_prediction, self.advantage], self.out, name=self.name+'_actor_critic')
+        self.compile()
+
+    def save_model(self, filename):
+        with self.graph.as_default(), self.session.as_default():
+            set_session(self.session)
+            self._model.save(filename)
+
+    def make_model(self):
         # MODEL NETWORK
         self.W = 0.5
         self.D = 2
@@ -57,9 +112,9 @@ class MyModel:
         ib = initializers.RandomNormal(stddev=0.1, seed=2)
         WN = int(self.W*self.N + 1)
 
-        self.input = Input(shape=(8), name='state')
-        self.target_prediction = Input(shape=(3,), name='target_in_layer')
-        self.advantage = Input(shape=(1), name='advantage')
+        self.input = Input(shape=(8), name=self.name+'_state_in')
+        self.target_prediction = Input(shape=(3,), name=self.name+'_target_in_layer')
+        self.advantage = Input(shape=(1), name=self.name+'_advantage_in')
 
         layer = Dense(WN, kernel_initializer=ik, bias_initializer=ib)(self.input)
         layer = ReLU(negative_slope=0.3)(layer)
@@ -71,14 +126,15 @@ class MyModel:
         out1 = Dense(3, kernel_initializer=ik, bias_initializer=ib)(layer)
         self.out = ReLU(negative_slope=1.0)(out1)
 
-        self._model = Model([self.input, self.target_prediction, self.advantage], self.out, name='actor_critic')
+        self._model = Model([self.input, self.target_prediction, self.advantage], self.out, name=self.name+'_actor_critic')
         self.optimizer = None
+
+
+
+        # https://ai.stackexchange.com/questions/18753/how-to-set-the-target-for-the-actor-in-a2c
 
     def compile(self):
         # LOSS AND OPTIMIZATION
-
-        sig = self.settings.statistics.sigma
-        
 
         def actor_critic_loss(output, pred, advantage):
             # Output: network output: force, angle, value
@@ -114,15 +170,13 @@ class MyModel:
                 - positive advantage: we do want to increase probability, etc
                 Why did I need to remove the negative sign? No idea, unless there is an undiscovered error
                 '''
-                sig = CONSTANTS.sigma
-                width = self.util.normal_int_width(sig)
-                gauss_fac = 1.0 / (sig * math.sqrt(2*math.pi))
+
 
                 delta = act - pred
-                expo = K.square(delta/sig)
-                density = gauss_fac * K.exp( expo )
+                expo = K.square(delta/SIG)
+                density = GAUSS_FRAC * K.exp( expo )
                 #prob = density * width
-                log_prob = K.log(gauss_fac * width) + expo
+                log_prob = K.log(GAUSS_FRAC * WIDTH) + expo
                 loss = log_prob * advantage
                 return loss
             force_loss = action_loss(output[0,0],pred[0,0])
@@ -134,12 +188,17 @@ class MyModel:
         loss = actor_critic_loss(self.out, self.target_prediction, self.advantage)
         self._model.add_loss(loss)
         self._model.compile(self.optimizer)
+        self._model._make_predict_function()
     
     def predict(self, data):
-        return self._model.predict(data)
+        with self.graph.as_default(), self.session.as_default():
+            set_session(self.session)
+            return self._model.predict(data)
     
     def fit(self, data, verbose, batch_size=1):
-        self._model.fit(data, verbose=verbose, batch_size=batch_size)
+        with self.graph.as_default(), self.session.as_default():
+            set_session(self.session)
+            self._model.fit(data, verbose=verbose, batch_size=batch_size)
 
 
 class Network:
@@ -149,8 +208,8 @@ class Network:
         self.util = Utility()
 
         # MODEL
-        self._model = MyModel(self.settings, N)
-        self.frozen_model = MyModel(self.settings, N)
+        self._model = MyModel(self.settings, N, 'model')
+        self.frozen_model = MyModel(self.settings, N, 'frozen')
 
         '''
         print("network in layers")
@@ -164,15 +223,10 @@ class Network:
         if self.settings.memory.load_saved_network:
             self.load_state()
 
-        self.compile()
         self.freeze()
         
         self.new_training_experiences = []
         self.training_experience = []
-        
-    def compile(self):
-        self._model.compile()
-        self.frozen_model.compile()
 
     def model(self, state, model=None):
         dummy_target = np.array([[1,1,1]])
@@ -205,7 +259,9 @@ class Network:
         return advantages[0]
 
     def freeze(self):
+        return
         self.frozen_model._model.set_weights(self._model._model.get_weights())
+        self.frozen_model.compile()
     
     def get(self, x):
         x = x.reshape((1,self.N))
@@ -311,7 +367,7 @@ class Network:
 
         self.fit_model(states, targets, advantages)
 
-        new = self._model.predict(np.array(states))
+        new = [self.model(state) for state in states]
 
         sample_results= []
         for orig, new in zip(original, new):
@@ -322,9 +378,9 @@ class Network:
             sample_results.append(results)
 
             bad = False
-            bad = bad or  tf.math.is_nan(new[0][0])
-            bad = bad or  tf.math.is_nan(new[0][1])
-            bad = bad or  tf.math.is_nan(new[0][2])
+            bad = bad or  math.isnan(float(new[0][0]))
+            bad = bad or  math.isnan(float(new[0][1]))
+            bad = bad or  math.isnan(float(new[0][2]))
 
             if bad:
                 exit()
@@ -362,7 +418,7 @@ class Network:
 
         network_file = memory_dir + "/model.h5"
         #tf.keras.models.save_model(self._model, filepath=network_file)
-        self._model._model.save(network_file)
+        self._model.save_model(network_file)
 
     def load_state(self):
         if self.settings._files.root_dir is None:
@@ -374,15 +430,11 @@ class Network:
             try:
                 network_file = memory_dir + "/model.h5"
                 self.graph = tf.compat.v1.Graph()
-                self._model._model = keras.models.load_model(network_file)
-                self.compile()
+                self._model.load_model(network_file)
                 self.freeze()
                 print("Loaded Network")
             except OSError as e:
                 print("Could not load network from file")
-
-        self.compile()
-        self.freeze()
 
         if self.settings.memory.load_saved_experience:
             try:
