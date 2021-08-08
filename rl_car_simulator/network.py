@@ -185,27 +185,31 @@ class MyModel:
                 '''
                 Goal: change probability of action taken in direction of sign(advantage)
                 prob = integration_width * prob_density
-                density = normal_function = gauss_fac * exp(square((x-u)/sig))
+                density = normal_function = gauss_fac * exp(-0.5*square((x-u)/sig))
                 let: x=action taken (model output to controller)
                 let: u=predicted action (model output during training)
 
                 Use log probabilities in loss function. We will decrease the loss
                 As:
-                - prob [= width * gauss_fac * exp(in_exponent)] increases
-                - log(prob) [= log(width) + in_exponent]   increases
-                - -log(prob) decreases
+                - in_exponent increases
+                - prob [= width * gauss_fac * exp((-)in_exponent)] decreases
+                - log(prob) [= log(width) + (-)in_exponent|]   decreases
+                - log(prob) [~ (-)in_exponent|] decreases
+                - log(prob) [~ (+) in_exponent] increases
+                - (-)log(prob) decreases
                 - we get closer to where we want to go
                 Then:
                 - multiple by advantage to control direction we want to go
                 - positive advantage: we do want to increase probability, etc
-                Why did I need to remove the negative sign? No idea, unless there is an undiscovered error
                 '''
 
 
                 delta = act - pred
-                expo = K.square(delta/SIG)
-                #prob = density * width
+                expo = 0.5 * K.square(delta/SIG) + 1e-5
+                # Expo has a max of ~0
+                # Expo has no minimum value
                 log_prob = expo # + K.log(GAUSS_FRAC * WIDTH) # These are constant
+                log_prob = K.clip(log_prob, 1e-5, 100.0)
                 loss = log_prob * advantage
                 return loss * rat
             force_loss = action_loss(output[0,0],pred[0,0], ratio_f)
