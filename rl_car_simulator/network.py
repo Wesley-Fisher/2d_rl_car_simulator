@@ -1,4 +1,6 @@
 import math
+
+from numpy.core.fromnumeric import clip
 from rl_car_simulator.settings import CONSTANTS
 from rl_car_simulator.utilities import Utility
 import numpy as np
@@ -286,7 +288,7 @@ class Network:
         return [np.array([[a0], [a1], [v]])]
 
     def predict_advantage(self, ex):
-        _, _, _, advantages, _ = self.build_epoch_targets([ex])
+        _, _, _, advantages, _, _, _ = self.build_epoch_targets([ex])
         return advantages[0]
 
     def freeze(self):
@@ -309,6 +311,8 @@ class Network:
         targets = []
         advantages = []
         returns = []
+        ratios_force = []
+        ratios_angle = []
 
         gamma = self.settings.learning.gamma
 
@@ -340,7 +344,18 @@ class Network:
 
             returns.append(ex.G)
 
-        return states, original, targets, advantages, returns
+            bf = ex.pf
+            pf = self.util.normal_int_prob(ex.a_force, float(pred0[0]), SIG)
+            rat_f = clip(pf / bf, 0.1, 2.0)
+            ratios_force.append(rat_f)
+
+            ba = ex.pa
+            pa = self.util.normal_int_prob(ex.a_angle, float(pred0[1]), SIG)
+            rat_a = clip(pa / ba, 0.1, 2.0)
+            ratios_angle.append(rat_a)
+
+
+        return states, original, targets, advantages, returns, ratios_force, ratios_angle
 
 
     def no_network_change(self, results, lim):
