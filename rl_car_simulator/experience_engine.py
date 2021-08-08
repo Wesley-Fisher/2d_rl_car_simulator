@@ -16,7 +16,7 @@ class ExperienceEngine:
                 car.step_experience.set_r1(r)
 
     def calculate_reward(self, car):
-        r = -0.01
+        r = -0.0
         if car.collided:
             r -= 5.0
         if car.reached_goal:
@@ -34,9 +34,13 @@ class ExperienceEngine:
                 dist_1 = dx1*dx1 + dy1*dy1
 
                 if dist_1 < dist_0:
-                    r += 0.01
+                    r += 0.2
                 else:
-                    r -= 0.01
+                    r -= 0.2
+                
+                d_head = car.step_experience.s0[4]
+                if abs(d_head) > math.pi / 2.0:
+                    r -= 0.2
 
         #print(r)
 

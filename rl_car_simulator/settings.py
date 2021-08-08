@@ -244,6 +244,8 @@ class Memory:
         self.size_resume_world = int(config.get("size_resume_world", 200))
         if self.size_resume_world > self.size_train_only:
             self.size_resume_world = self.size_train_only - 1
+        
+        self.max_sample_uses = int(config.get("max_sample_uses", -1))
 
     def write(self):
         config = {}
@@ -255,6 +257,7 @@ class Memory:
         config["purge_merged_exp"] = self.purge_merged_experience
         config["size_train_only"] = self.size_train_only
         config["size_resume_world"] = self.size_resume_world
+        config["max_sample_uses"] = self.max_sample_uses
         return config
 
 class Reporting:

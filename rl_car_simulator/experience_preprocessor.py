@@ -12,6 +12,7 @@ class TDExperience:
         self.s1 = None
         self.step_in_ep = 0
         self.next_terminal = False
+        self.num_uses = 0
 
 class ExperiencePreprocessor:
     def __init__(self, settings, reporting=None):

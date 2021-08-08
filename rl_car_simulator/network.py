@@ -122,7 +122,7 @@ class MyModel:
         print(self.advantage)
         '''
         self.out = self._model.output
-        self._model = Model([self.input, self.target_prediction, self.advantage, self.ratios_f, self.ratios_a], self.out, name=self.name+'_actor_critic')
+        self._model = Model([self.input, self.target_prediction, self.advantage, self.ratio_f, self.ratio_a], self.out, name=self.name+'_actor_critic')
         if compile:
             self.compile()
 
@@ -142,8 +142,8 @@ class MyModel:
         self.input = Input(shape=(8), name=self.name+'_state_in')
         self.target_prediction = Input(shape=(3,), name=self.name+'_target_in_layer')
         self.advantage = Input(shape=(1), name=self.name+'_advantage_in')
-        self.ratios_f = Input(shape=(1), name=self.name+'_rat_f_in')
-        self.ratios_a = Input(shape=(1), name=self.name+'_rat_a_in')
+        self.ratio_f = Input(shape=(1), name=self.name+'_rat_f_in')
+        self.ratio_a = Input(shape=(1), name=self.name+'_rat_a_in')
 
         layer = Dense(WN, kernel_initializer=ik, bias_initializer=ib)(self.input)
         layer = ReLU(negative_slope=0.3)(layer)
@@ -155,7 +155,7 @@ class MyModel:
         out1 = Dense(3, kernel_initializer=ik, bias_initializer=ib)(layer)
         self.out = ReLU(negative_slope=1.0)(out1)
 
-        self._model = Model([self.input, self.target_prediction, self.advantage, self.ratios_f, self.ratios_a], self.out, name=self.name+'_actor_critic')
+        self._model = Model([self.input, self.target_prediction, self.advantage, self.ratio_f, self.ratio_a], self.out, name=self.name+'_actor_critic')
         self.optimizer = None
 
 
@@ -215,12 +215,15 @@ class MyModel:
             force_loss = action_loss(output[0,0],pred[0,0], ratio_f)
             angle_loss = action_loss(output[0,1],pred[0,1], ratio_a)
 
+            # Not sure why angles tend to go off in one direction yet
+            # try to limit for now
             large_angle_loss = K.square(output[0,1])
+            neg_speed_loss = -output[0,0]
 
             return critic_loss + force_loss + angle_loss + large_angle_loss
 
         self.optimizer = Adam(learning_rate=self.settings.learning.alpha, clipnorm=1.0)
-        loss = actor_critic_loss(self.out, self.target_prediction, self.advantage, self.ratios_f, self.ratios_a)
+        loss = actor_critic_loss(self.out, self.target_prediction, self.advantage, self.ratio_f, self.ratio_a)
         self._model.add_loss(loss)
         self._model.compile(self.optimizer)
         self._model._make_predict_function()
@@ -475,6 +478,10 @@ class Network:
         for result in training_results:
             if self.no_network_change(result, self.settings.learning.alpha*10):
                 remove_indices.append(i)
+            elif self.settings.memory.max_sample_uses > 0 and \
+                 self.training_experience[i].num_uses > self.settings.memory.max_sample_uses:
+                 remove_indices.append(i)
+            self.training_experience[i].num_uses = self.training_experience[i].num_uses + 1
             i = i + 1
         
         remove_indices.reverse()
