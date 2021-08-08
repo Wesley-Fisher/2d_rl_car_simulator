@@ -148,7 +148,7 @@ class TestNetworkBasics(unittest.TestCase):
             # Should see actions be less probable
             target = np.array([[pred_force_0 + 0.5], [pred_angle_0 - 0.5], [float(target[2])]])
             targets.append(target)
-            advantages.append(float(target[2]) - 5.0)
+            advantages.append(-1.0)
 
         net.fit_model(states, targets, advantages)
         af1 = net.model(s_net)[0][0]

@@ -120,7 +120,7 @@ class GameEngine:
     def training_fn(self):   
 
         while self.running:
-            time.sleep(0.1)
+            time.sleep(0.5)
             self.network.add_new_experience()
 
             l_exp = len(self.network.training_experience)

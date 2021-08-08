@@ -7,6 +7,7 @@ import os
 from os import listdir
 from os.path import isfile, join
 import statistics
+import time
 
 import io
 import cProfile, pstats
@@ -87,17 +88,37 @@ class MyModel:
         except OSError as e:
             raise e
 
-    def handle_new_model(self):
+    def copy_weights(self, weights):
+        self.session.close()
+        self.graph = tf.Graph()
+        self.session = tf.compat.v1.Session(graph=self.graph)
+        with self.graph.as_default():
+            set_session(self.session)
+            self.make_model()
+            self.handle_new_model(False)
+            self._model.set_weights(weights)
+            self.compile()
+            self.dummy_test()
+
+    def get_weights(self):
+        with self.graph.as_default():
+            set_session(self.session)
+            return (self._model.get_weights())
+
+    def handle_new_model(self, compile=True):
         inputs = self._model.inputs
         self.input = inputs[0]
         self.target_prediction = inputs[1]
         self.advantage = inputs[2]
+        '''
         print(self.input)
         print(self.target_prediction)
         print(self.advantage)
+        '''
         self.out = self._model.output
         self._model = Model([self.input, self.target_prediction, self.advantage], self.out, name=self.name+'_actor_critic')
-        self.compile()
+        if compile:
+            self.compile()
 
     def save_model(self, filename):
         with self.graph.as_default(), self.session.as_default():
@@ -174,9 +195,8 @@ class MyModel:
 
                 delta = act - pred
                 expo = K.square(delta/SIG)
-                density = GAUSS_FRAC * K.exp( expo )
                 #prob = density * width
-                log_prob = K.log(GAUSS_FRAC * WIDTH) + expo
+                log_prob = expo # + K.log(GAUSS_FRAC * WIDTH) # These are constant
                 loss = log_prob * advantage
                 return loss
             force_loss = action_loss(output[0,0],pred[0,0])
@@ -200,12 +220,21 @@ class MyModel:
             set_session(self.session)
             self._model.fit(data, verbose=verbose, batch_size=batch_size)
 
+    def dummy_test(self):
+        state = np.array([ [0.0]*self.N])
+        target = np.array([[0.0,0.0,0.0]])
+        adv = np.array([[0.0]])
+        data = (state, target, adv)
+        with self.graph.as_default(), self.session.as_default():
+            set_session(self.session)
+            self._model.predict(data)
 
 class Network:
     def __init__(self, settings, N):
         self.settings = settings
         self.N = N
         self.util = Utility()
+        self.freezing = False
 
         # MODEL
         self._model = MyModel(self.settings, N, 'model')
@@ -220,13 +249,15 @@ class Network:
         self.session = None
         self.graph = None
 
+        self.new_training_experiences = []
+        self.training_experience = []
+
         if self.settings.memory.load_saved_network:
             self.load_state()
 
         self.freeze()
         
-        self.new_training_experiences = []
-        self.training_experience = []
+
 
     def model(self, state, model=None):
         dummy_target = np.array([[1,1,1]])
@@ -255,15 +286,17 @@ class Network:
         return [np.array([[a0], [a1], [v]])]
 
     def predict_advantage(self, ex):
-        _, _, _, advantages = self.build_epoch_targets([ex])
+        _, _, _, advantages, _ = self.build_epoch_targets([ex])
         return advantages[0]
 
     def freeze(self):
-        return
-        self.frozen_model._model.set_weights(self._model._model.get_weights())
-        self.frozen_model.compile()
+        self.freezing = True
+        self.frozen_model.copy_weights(self._model.get_weights())
+        self.freezing = False
     
     def get(self, x):
+        while self.freezing:
+            time.sleep(0.001)
         x = x.reshape((1,self.N))
         return self.model(x, self.frozen_model)
     
@@ -275,6 +308,7 @@ class Network:
         original = []
         targets = []
         advantages = []
+        returns = []
 
         gamma = self.settings.learning.gamma
 
@@ -304,7 +338,9 @@ class Network:
             target = np.array([[ex.a_force, ex.a_angle, target_critic]])
             targets.append(target)
 
-        return states, original, targets, advantages
+            returns.append(ex.G)
+
+        return states, original, targets, advantages, returns
 
 
     def no_network_change(self, results, lim):
@@ -322,6 +358,7 @@ class Network:
     def add_new_experience(self):
         new_exp = self.new_training_experiences
         self.new_training_experiences = []
+        #print("Adding %d new samples to %d existing samples" % (len(new_exp), len(self.training_experience)))
         self.training_experience = self.training_experience + new_exp
 
     def fit_model(self, states, targets, advantages, verbose=0):
@@ -363,11 +400,14 @@ class Network:
         idx = -1
         sample_results = []
 
-        states, original, targets, advantages = self.build_epoch_targets(self.training_experience)
+        states, original, targets, advantages, returns = self.build_epoch_targets(self.training_experience)
 
         self.fit_model(states, targets, advantages)
 
         new = [self.model(state) for state in states]
+
+        for orig, target, adv, newP, ret in zip(original[0:5], targets[0:5], advantages[0:5], new[0:5], returns[0:5]):
+            print("orig(%f,%f,%f)->ret(%f)->target(%f,%f,%f)->adv(%f)->(%f,%f,%f)" % (orig[0],orig[1],orig[2], ret, target[0][0], target[0][1], target[0][2], adv, newP[0][0], newP[0][1], newP[0][2]))
 
         sample_results= []
         for orig, new in zip(original, new):
