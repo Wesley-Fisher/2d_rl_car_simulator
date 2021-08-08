@@ -313,12 +313,12 @@ class TestNetworkIntegration(unittest.TestCase):
 
         ex = expGoal[0]
         states, original, targets, advantages, returns, rats_f, rats_a = net.build_epoch_targets([ex])
-        net.fit_model(states * 100, targets * 100, advantages * 100, rats_f * 100, rats_a * 100)
+        net.fit_model(states * 200, targets * 200, advantages * 200, rats_f * 200, rats_a * 200)
 
         v0 = float(net.model(ex.s0)[0][2])
         v1 = float(net.model(ex.s1)[0][2])
         r = ex.r1
-        self.assertLess(abs(v0), abs(v1 + r))
+        self.assertLess(v0, v1 + r)
         return
 
     def test_terminal_coll_learning(self):
@@ -335,7 +335,7 @@ class TestNetworkIntegration(unittest.TestCase):
         v0 = float(net.model(ex.s0)[0][2])
         v1 = float(net.model(ex.s1)[0][2])
         r = ex.r1
-        self.assertLess(abs(v0), abs(v1 + r))
+        self.assertLess(v0, v1 + r)
         return
 
     def test_split_experience_learning(self):

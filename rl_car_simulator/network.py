@@ -359,13 +359,15 @@ class Network:
 
             returns.append(ex.G)
 
-            bf = ex.pf
+            bf = clip(ex.pf, 1e-3, 1.0-1e-3)
             pf = self.util.normal_int_prob(ex.a_force, float(pred0[0]), SIG)
+            pf = clip(pf, 1e-3, 1.0-1e-3)
             rat_f = clip(pf / bf, 0.1, 2.0)
             ratios_force.append(rat_f)
 
-            ba = ex.pa
+            ba = clip(ex.pa, 1e-3, 1.0-1e-3)
             pa = self.util.normal_int_prob(ex.a_angle, float(pred0[1]), SIG)
+            pa = clip(pa, 1e-3, 1.0-1e-3)
             rat_a = clip(pa / ba, 0.1, 2.0)
             ratios_angle.append(rat_a)
 
