@@ -215,7 +215,9 @@ class MyModel:
             force_loss = action_loss(output[0,0],pred[0,0], ratio_f)
             angle_loss = action_loss(output[0,1],pred[0,1], ratio_a)
 
-            return critic_loss + force_loss + angle_loss
+            large_angle_loss = K.square(output[0,1])
+
+            return critic_loss + force_loss + angle_loss + large_angle_loss
 
         self.optimizer = Adam(learning_rate=self.settings.learning.alpha, clipnorm=1.0)
         loss = actor_critic_loss(self.out, self.target_prediction, self.advantage, self.ratios_f, self.ratios_a)
