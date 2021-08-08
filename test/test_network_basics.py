@@ -43,6 +43,8 @@ class TestNetworkBasics(unittest.TestCase):
         # Positive Change
         targets = []
         advantages = []
+        ratios_f = []
+        ratios_a = []
         for state in states:
             s = np.array(state).reshape((1,len(state)))
             target = net.model(s)[0]
@@ -50,8 +52,10 @@ class TestNetworkBasics(unittest.TestCase):
             target = np.array([[float(target[0])], [float(target[1])], [float(target[2]) + 1.0]])
             targets.append(target)
             advantages.append(float(target[2]))
+            ratios_f.append(1.0)
+            ratios_a.append(1.0)
 
-        net.fit_model(states, targets, advantages)
+        net.fit_model(states, targets, advantages, ratios_f, ratios_a)
 
         v1 = net.model(s_net)[0][2]
         self.assertGreater(float(v1), float(v0))
@@ -59,6 +63,8 @@ class TestNetworkBasics(unittest.TestCase):
         v0 = v1
         # Negative Change
         targets = []
+        ratios_f = []
+        ratios_a = []
         for state in states:
             s = np.array(state).reshape((1,len(state)))
             target = net.model(s)[0]
@@ -66,8 +72,10 @@ class TestNetworkBasics(unittest.TestCase):
             target = np.array([[float(target[0])], [float(target[1])], [float(target[2]) - 1.0]])
             targets.append(target)
             advantages.append(float(target[2])) # May need to be a bigger - than the prev is a +?
+            ratios_f.append(1.0)
+            ratios_a.append(1.0)
 
-        net.fit_model(states, targets, advantages)
+        net.fit_model(states, targets, advantages, ratios_f, ratios_a)
         v1 = net.model(s_net)[0][2]
         self.assertLess(float(v1),float(v0))
 
@@ -91,6 +99,8 @@ class TestNetworkBasics(unittest.TestCase):
         # Increase likelihoods
         targets = []
         advantages = []
+        ratios_f = []
+        ratios_a = []
         for state in states:
             s = np.array(state).reshape((1,len(state)))
             target = net.model(s)[0]
@@ -106,8 +116,10 @@ class TestNetworkBasics(unittest.TestCase):
             target = np.array([[pred_force_0 + 0.5], [pred_angle_0 - 0.5], [float(target[2])]])
             targets.append(target)
             advantages.append(float(target[2]) + 5.0)
+            ratios_f.append(1.0)
+            ratios_a.append(1.0)
 
-        net.fit_model(states, targets, advantages)
+        net.fit_model(states, targets, advantages, ratios_f, ratios_a)
         af1 = net.model(s_net)[0][0]
         aa1 = net.model(s_net)[0][1]
 
@@ -134,6 +146,8 @@ class TestNetworkBasics(unittest.TestCase):
         # Decrease likelihoods
         targets = []
         advantages = []
+        ratios_f = []
+        ratios_a = []
         for state in states:
             s = np.array(state).reshape((1,len(state)))
             target = net.model(s)[0]
@@ -149,8 +163,10 @@ class TestNetworkBasics(unittest.TestCase):
             target = np.array([[pred_force_0 + 0.5], [pred_angle_0 - 0.5], [float(target[2])]])
             targets.append(target)
             advantages.append(-1.0)
+            ratios_f.append(1.0)
+            ratios_a.append(1.0)
 
-        net.fit_model(states, targets, advantages)
+        net.fit_model(states, targets, advantages, ratios_f, ratios_a)
         af1 = net.model(s_net)[0][0]
         aa1 = net.model(s_net)[0][1]
 
@@ -176,6 +192,8 @@ class TestNetworkBasics(unittest.TestCase):
         for i in range(0, 25):
             targets = []
             advantages = []
+            ratios_f = []
+            ratios_a = []
             for state in states:
                 s = np.array(state).reshape((1,len(state)))
                 target = np.array(net.model(s)[0])
@@ -183,8 +201,10 @@ class TestNetworkBasics(unittest.TestCase):
                 target = np.array([[float(target[0])], [float(target[1])], [float(target[2]) + 1.0]])
                 targets.append(target)
                 advantages.append(float(target[2]))
+                ratios_f.append(1.0)
+                ratios_a.append(1.0)
 
-            net.fit_model(states, targets, advantages)
+            net.fit_model(states, targets, advantages, ratios_f, ratios_a)
 
             v1 = net.model(s_net)[0][2]
             self.assertTrue(float(v1) - float(v0) > 0.0)

@@ -258,7 +258,7 @@ class TestNetworkIntegration(unittest.TestCase):
 
         for i in range(0, 5):
             states, original, targets, advantages, returns, rats_f, rats_a = net.build_epoch_targets(experience)
-            net.fit_model(states * 100, targets * 100, advantages * 100)
+            net.fit_model(states * 100, targets * 100, advantages * 100, rats_f * 100, rats_a * 100)
             
             v0 = float(net.model(ex0.s0)[0][2])
             vM = float(net.model(exM.s0)[0][2])
@@ -286,7 +286,7 @@ class TestNetworkIntegration(unittest.TestCase):
 
         for i in range(0, 5):
             states, original, targets, advantages, returns, rats_f, rats_a = net.build_epoch_targets(experience)
-            net.fit_model(states * 1000, targets * 1000, advantages * 1000)
+            net.fit_model(states * 1000, targets * 1000, advantages * 1000, rats_f * 1000, rats_a * 1000)
             
             v0 = float(net.model(ex0.s0)[0][2])
             vM = float(net.model(exM.s0)[0][2])
@@ -313,7 +313,7 @@ class TestNetworkIntegration(unittest.TestCase):
 
         ex = expGoal[0]
         states, original, targets, advantages, returns, rats_f, rats_a = net.build_epoch_targets([ex])
-        net.fit_model(states * 100, targets * 100, advantages * 100)
+        net.fit_model(states * 100, targets * 100, advantages * 100, rats_f * 100, rats_a * 100)
 
         v0 = float(net.model(ex.s0)[0][2])
         v1 = float(net.model(ex.s1)[0][2])
@@ -330,7 +330,7 @@ class TestNetworkIntegration(unittest.TestCase):
 
         ex = expColl[0]
         states, original, targets, advantages, returns, rats_f, rats_a = net.build_epoch_targets([ex])
-        net.fit_model(states * 100, targets * 100, advantages * 100)
+        net.fit_model(states * 100, targets * 100, advantages * 100, rats_f * 100, rats_a * 100)
 
         v0 = float(net.model(ex.s0)[0][2])
         v1 = float(net.model(ex.s1)[0][2])
@@ -364,7 +364,7 @@ class TestNetworkIntegration(unittest.TestCase):
         # of a few steps each
         for j in range(0, 5):
             states, original, targets, advantages, returns, rats_f, rats_a = net.build_epoch_targets(all_exp)
-            net.fit_model(states * 200, targets * 200, advantages * 200)
+            net.fit_model(states * 200, targets * 200, advantages * 200, rats_f * 200, rats_a * 200)
 
             # Can't be as sure with training with both sets
             # So only test final results
@@ -412,7 +412,7 @@ class TestNetworkIntegration(unittest.TestCase):
             #print("Split round training %d" % (j+1))
             #print("a first: %f" % float(net.model(exG0.s0)[0][1] ))
             states, original, targets, advantages, returns, rats_f, rats_a = net.build_epoch_targets(all_exp)
-            net.fit_model(states * 200, targets * 200, advantages * 200)
+            net.fit_model(states * 200, targets * 200, advantages * 200, rats_f * 200, rats_a * 200)
 
             #print_exp("Vals",all_exp, True)
 

@@ -64,6 +64,8 @@ class MyModel:
         self.input = None
         self.target_prediction = None
         self.advantage = None
+        self.ratio_f = None
+        self.ratio_a = None
         self.out = None
         self._model = None
         self.optimizer=None
@@ -112,13 +114,15 @@ class MyModel:
         self.input = inputs[0]
         self.target_prediction = inputs[1]
         self.advantage = inputs[2]
+        self.ratio_f = inputs[3]
+        self.ratio_a = inputs[4]
         '''
         print(self.input)
         print(self.target_prediction)
         print(self.advantage)
         '''
         self.out = self._model.output
-        self._model = Model([self.input, self.target_prediction, self.advantage], self.out, name=self.name+'_actor_critic')
+        self._model = Model([self.input, self.target_prediction, self.advantage, self.ratios_f, self.ratios_a], self.out, name=self.name+'_actor_critic')
         if compile:
             self.compile()
 
@@ -138,6 +142,8 @@ class MyModel:
         self.input = Input(shape=(8), name=self.name+'_state_in')
         self.target_prediction = Input(shape=(3,), name=self.name+'_target_in_layer')
         self.advantage = Input(shape=(1), name=self.name+'_advantage_in')
+        self.ratios_f = Input(shape=(1), name=self.name+'_rat_f_in')
+        self.ratios_a = Input(shape=(1), name=self.name+'_rat_a_in')
 
         layer = Dense(WN, kernel_initializer=ik, bias_initializer=ib)(self.input)
         layer = ReLU(negative_slope=0.3)(layer)
@@ -149,7 +155,7 @@ class MyModel:
         out1 = Dense(3, kernel_initializer=ik, bias_initializer=ib)(layer)
         self.out = ReLU(negative_slope=1.0)(out1)
 
-        self._model = Model([self.input, self.target_prediction, self.advantage], self.out, name=self.name+'_actor_critic')
+        self._model = Model([self.input, self.target_prediction, self.advantage, self.ratios_f, self.ratios_a], self.out, name=self.name+'_actor_critic')
         self.optimizer = None
 
 
@@ -159,10 +165,11 @@ class MyModel:
     def compile(self):
         # LOSS AND OPTIMIZATION
 
-        def actor_critic_loss(output, pred, advantage):
+        def actor_critic_loss(output, pred, advantage, ratio_f, ratio_a):
             # Output: network output: force, angle, value
             # Pred: predicted target: used force, use angle, episode return
             # Advantage: advantage: ex.r1 + gamma * pred(v1) - pred(v0)
+            # Ratios: importance sampling ratios
             '''
             print("in-loss printouts")
             print(output)
@@ -173,7 +180,7 @@ class MyModel:
             # Want critic to predict episode return
             critic_loss = K.pow(pred[0,2] - output[0,2], 2)
 
-            def action_loss(act, pred):
+            def action_loss(act, pred, rat):
                 # Heavy Influence: https://www.tensorflow.org/tutorials/reinforcement_learning/actor_critic
                 '''
                 Goal: change probability of action taken in direction of sign(advantage)
@@ -200,14 +207,14 @@ class MyModel:
                 #prob = density * width
                 log_prob = expo # + K.log(GAUSS_FRAC * WIDTH) # These are constant
                 loss = log_prob * advantage
-                return loss
-            force_loss = action_loss(output[0,0],pred[0,0])
-            angle_loss = action_loss(output[0,1],pred[0,1])
+                return loss * rat
+            force_loss = action_loss(output[0,0],pred[0,0], ratio_f)
+            angle_loss = action_loss(output[0,1],pred[0,1], ratio_a)
 
             return critic_loss + force_loss + angle_loss
 
         self.optimizer = Adam(learning_rate=self.settings.learning.alpha, clipnorm=1.0)
-        loss = actor_critic_loss(self.out, self.target_prediction, self.advantage)
+        loss = actor_critic_loss(self.out, self.target_prediction, self.advantage, self.ratios_f, self.ratios_a)
         self._model.add_loss(loss)
         self._model.compile(self.optimizer)
         self._model._make_predict_function()
@@ -226,7 +233,9 @@ class MyModel:
         state = np.array([ [0.0]*self.N])
         target = np.array([[0.0,0.0,0.0]])
         adv = np.array([[0.0]])
-        data = (state, target, adv)
+        rat_f = np.array([[1.0]])
+        rat_a = np.array([[1.0]])
+        data = (state, target, adv, rat_f, rat_a)
         with self.graph.as_default(), self.session.as_default():
             set_session(self.session)
             self._model.predict(data)
@@ -264,7 +273,9 @@ class Network:
     def model(self, state, model=None):
         dummy_target = np.array([[1,1,1]])
         dummy_advantage = np.array([[0]])
-        data = (state, dummy_target, dummy_advantage)
+        dummy_rat_f = np.array([[1.0]])
+        dummy_rat_a = np.array([[1.0]])
+        data = (state, dummy_target, dummy_advantage, dummy_rat_f, dummy_rat_a)
 
         '''
         print("Pred Dummies")
@@ -376,7 +387,7 @@ class Network:
         #print("Adding %d new samples to %d existing samples" % (len(new_exp), len(self.training_experience)))
         self.training_experience = self.training_experience + new_exp
 
-    def fit_model(self, states, targets, advantages, verbose=0):
+    def fit_model(self, states, targets, advantages, ratios_f, ratios_a, verbose=0):
 
         def numpify(data, size):
             N = len(data)
@@ -389,7 +400,9 @@ class Network:
         states = numpify(states, self.N)
         targets = numpify(targets, 3)
         advantages = numpify(advantages, 1)
-        data = (states, targets, advantages)
+        ratios_f = numpify(ratios_f, 1)
+        ratios_a = numpify(ratios_a, 1)
+        data = (states, targets, advantages, ratios_f, ratios_a)
         
         '''
         print("pre-fit data")
@@ -415,9 +428,9 @@ class Network:
         idx = -1
         sample_results = []
 
-        states, original, targets, advantages, returns = self.build_epoch_targets(self.training_experience)
+        states, original, targets, advantages, returns, ratios_f, ratios_a = self.build_epoch_targets(self.training_experience)
 
-        self.fit_model(states, targets, advantages)
+        self.fit_model(states, targets, advantages, ratios_f, ratios_a)
 
         new = [self.model(state) for state in states]
 
