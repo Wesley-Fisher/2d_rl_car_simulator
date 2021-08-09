@@ -183,6 +183,23 @@ class Learning:
         config["max_ep_length"] = self.max_episode_length
         return config
 
+class Rewards:
+    def __init__(self, config):
+        self.get_closer_reward = float(config.get("get_closer_reward", 0.0))
+        self.turn_closer_reward = float(config.get("turn_closer_reward", 0.0))
+        self.goal_reward = float(config.get("goal_reward", 5.0))
+        self.collide_reward = float(config.get("collide_reward", -5.0))
+        self.timestep_reward = float(config.get("timestep_reward", -0.1))
+
+    def write(self):
+        config = {}
+        config["get_closer_reward"] = self.get_closer_reward
+        config["turn_closer_reward"] = self.turn_closer_reward
+        config["goal_reward"] = self.goal_reward
+        config["collide_reward"] = self.collide_reward
+        config["timestep_reward"] = self.timestep_reward
+        return config
+
 class Statistics:
     def __init__(self, config):
         self.sigma = float(config.get("sigma", 0.1))
@@ -312,6 +329,7 @@ class Settings:
         self.walls = Walls(self.world, config.get("walls", {}))
         self.preprocessing = Preprocessing(config.get("preprocessing", {}))
         self.learning = Learning(config.get("learning", {}))
+        self.rewards = Rewards(config.get("rewards", {}))
         self.statistics = Statistics(config.get("statistics", {}))
         self.memory = Memory(config.get("memory", {}))
         self.reporting = Reporting(config.get("reporting", {}))
@@ -336,6 +354,7 @@ class Settings:
         config["walls"] = self.walls.write()
         config["preprocessing"] = self.preprocessing.write()
         config["learning"] = self.learning.write()
+        config["rewards"] = self.rewards.write()
         config["statistics"] = self.statistics.write()
         config["memory"] = self.memory.write()
         config["reporting"] = self.reporting.write()
