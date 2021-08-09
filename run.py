@@ -2,6 +2,11 @@
 import os
 import sys
 
+# Control logging/output
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' # 1 filters out info, 2 filters warnings, 3 filters errors
+import tensorflow as tf
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+
 import rl_car_simulator.game_engine as Engine
 from rl_car_simulator.settings import Settings
 
