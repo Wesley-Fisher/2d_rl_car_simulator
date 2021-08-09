@@ -145,15 +145,15 @@ class MyModel:
         self.ratio_f = Input(shape=(1), name=self.name+'_rat_f_in')
         self.ratio_a = Input(shape=(1), name=self.name+'_rat_a_in')
 
-        layer = Dense(WN, kernel_initializer=ik, bias_initializer=ib)(self.input)
-        layer = ReLU(negative_slope=0.3)(layer)
+        layer = Dense(WN, kernel_initializer=ik, bias_initializer=ib, name="dense_input")(self.input)
+        layer = ReLU(negative_slope=0.3, name="dense_input_relu")(layer)
 
         for i in range(0, self.D):
-            layer = Dense(WN, kernel_initializer=ik, bias_initializer=ib)(layer)
-            layer = ReLU(negative_slope=0.3)(layer)
+            layer = Dense(WN, kernel_initializer=ik, bias_initializer=ib, name='dense_'+str(i))(layer)
+            layer = ReLU(negative_slope=0.3, name='dense_relu'+str(i))(layer)
 
-        out1 = Dense(3, kernel_initializer=ik, bias_initializer=ib)(layer)
-        self.out = ReLU(negative_slope=1.0)(out1)
+        out1 = Dense(3, kernel_initializer=ik, bias_initializer=ib, name='dense_output')(layer)
+        self.out = ReLU(negative_slope=1.0, name='dense_output_relu')(out1)
 
         self._model = Model([self.input, self.target_prediction, self.advantage, self.ratio_f, self.ratio_a], self.out, name=self.name+'_actor_critic')
         self.optimizer = None

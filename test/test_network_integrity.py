@@ -24,6 +24,7 @@ class TestNetworkBasics(unittest.TestCase):
         physics = PhysicsEngine(settings, world, experience)
         null_state = physics.get_car_state(Car(settings, CarState()))
         net = Network(settings, len(null_state))
+        print(net._model._model.summary())
         self.assertTrue(True)
 
     def test_model_get_interfaces(self):
