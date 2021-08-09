@@ -20,7 +20,7 @@ class ExperienceEngine:
         if car.collided:
             r += self.settings.rewards.collide_reward
         if car.reached_goal:
-            r += self.settings.reward.goal_reward
+            r += self.settings.rewards.goal_reward
         else:
             if car.step_experience is not None and \
                car.step_experience.s0 is not None and \
@@ -34,14 +34,14 @@ class ExperienceEngine:
                 dist_1 = dx1*dx1 + dy1*dy1
 
                 if dist_1 < dist_0:
-                    r += self.settings.reward.get_closer_reward
+                    r += self.settings.rewards.get_closer_reward
                 else:
-                    r -= self.settings.reward.get_closer_reward
+                    r -= self.settings.rewards.get_closer_reward
                 
                 if abs(car.step_experience.s1[4]) < abs(car.step_experience.s0[4]):
-                    r += self.settings.reward.turn_closer_reward
+                    r += self.settings.rewards.turn_closer_reward
                 else:
-                    r -= self.settings.reward.turn_closer_reward
+                    r -= self.settings.rewards.turn_closer_reward
 
         #print(r)
 
