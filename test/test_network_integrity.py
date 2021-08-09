@@ -61,6 +61,8 @@ class TestNetworkBasics(unittest.TestCase):
         s_net = np.array(s0).reshape((1,len(s0)))
 
         net.save_state()
+        self.assertTrue(os.path.isfile(dir_path + "/temp_data/memory/experience.pk"))
+        self.assertTrue(os.path.isfile(dir_path + "/temp_data/memory/model.h5"))
         net.load_state()
 
         os.remove(dir_path + "/temp_data/memory/experience.pk")
@@ -108,6 +110,8 @@ class TestNetworkBasics(unittest.TestCase):
         s_net = np.array(s0).reshape((1,len(s0)))
 
         net.save_state()
+        self.assertTrue(os.path.isfile(dir_path + "/temp_data/memory/experience.pk"))
+        self.assertTrue(os.path.isfile(dir_path + "/temp_data/memory/model.h5"))
         net.load_state()
         net.freeze()
 
@@ -137,6 +141,8 @@ class TestNetworkBasics(unittest.TestCase):
         s_net = np.array(s0).reshape((1,len(s0)))
         for i in range(0, 3):
             net.save_state()
+            self.assertTrue(os.path.isfile(dir_path + "/temp_data/memory/experience.pk"))
+            self.assertTrue(os.path.isfile(dir_path + "/temp_data/memory/model.h5"))
             net.load_state()
             net.freeze()
 
