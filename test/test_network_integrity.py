@@ -1,6 +1,7 @@
 import math
 import numpy as np
 import os
+import time
 
 import unittest
 
@@ -47,7 +48,11 @@ class TestNetworkBasics(unittest.TestCase):
     def test_save_load(self):
         settings = Settings()
         dir_path = os.path.dirname(os.path.realpath(__file__))
+        experience_file = dir_path + "/temp_data/memory/experience.pk"
+        model_file = dir_path + "/temp_data/memory/model.h5"
         settings._files.root_dir = dir_path + "/temp_data"
+        settings.memory.load_saved_network = True
+        settings.memory.load_saved_experience = True
 
         world = WorldCreation(settings).get()
         preprocessor = ExperiencePreprocessor(settings)
@@ -60,13 +65,19 @@ class TestNetworkBasics(unittest.TestCase):
 
         s_net = np.array(s0).reshape((1,len(s0)))
 
-        net.save_state()
-        self.assertTrue(os.path.isfile(dir_path + "/temp_data/memory/experience.pk"))
-        self.assertTrue(os.path.isfile(dir_path + "/temp_data/memory/model.h5"))
-        net.load_state()
+        os.remove(experience_file)
+        os.remove(model_file)
+        time.sleep(0.1)
 
-        os.remove(dir_path + "/temp_data/memory/experience.pk")
-        os.remove(dir_path + "/temp_data/memory/model.h5")
+        net.save_state()
+        time.sleep(0.1)
+        self.assertTrue(os.path.isfile(experience_file))
+        self.assertTrue(os.path.isfile(model_file))
+        self.assertTrue(net.load_state())
+
+        os.remove(experience_file)
+        os.remove(model_file)
+        time.sleep(0.1)
 
         v0 = net.get(s_net)[0][2]
         v0 = net.model(s_net)[0][2]
@@ -76,6 +87,9 @@ class TestNetworkBasics(unittest.TestCase):
 
     def test_freeze(self):
         settings = Settings()
+        settings.memory.load_saved_network = False
+        settings.memory.load_saved_experience = False
+
         world = WorldCreation(settings).get()
         preprocessor = ExperiencePreprocessor(settings)
         experience = ExperienceEngine(settings, world, preprocessor)
@@ -96,7 +110,11 @@ class TestNetworkBasics(unittest.TestCase):
     def test_save_load_freeze(self):
         settings = Settings()
         dir_path = os.path.dirname(os.path.realpath(__file__))
+        experience_file = dir_path + "/temp_data/memory/experience.pk"
+        model_file = dir_path + "/temp_data/memory/model.h5"
         settings._files.root_dir = dir_path + "/temp_data"
+        settings.memory.load_saved_network = True
+        settings.memory.load_saved_experience = True
 
         world = WorldCreation(settings).get()
         preprocessor = ExperiencePreprocessor(settings)
@@ -109,14 +127,21 @@ class TestNetworkBasics(unittest.TestCase):
 
         s_net = np.array(s0).reshape((1,len(s0)))
 
+        os.remove(experience_file)
+        os.remove(model_file)
+        time.sleep(0.1)
+
         net.save_state()
-        self.assertTrue(os.path.isfile(dir_path + "/temp_data/memory/experience.pk"))
-        self.assertTrue(os.path.isfile(dir_path + "/temp_data/memory/model.h5"))
-        net.load_state()
+        time.sleep(0.1)
+
+        self.assertTrue(os.path.isfile(experience_file))
+        self.assertTrue(os.path.isfile(model_file))
+        self.assertTrue(net.load_state())
         net.freeze()
 
-        os.remove(dir_path + "/temp_data/memory/experience.pk")
-        os.remove(dir_path + "/temp_data/memory/model.h5")
+        os.remove(experience_file)
+        os.remove(model_file)
+        time.sleep(0.1)
 
         v0 = net.get(s_net)[0][2]
         v0 = net.model(s_net)[0][2]
@@ -127,7 +152,11 @@ class TestNetworkBasics(unittest.TestCase):
     def test_save_load_freeze_repeated(self):
         settings = Settings()
         dir_path = os.path.dirname(os.path.realpath(__file__))
+        experience_file = dir_path + "/temp_data/memory/experience.pk"
+        model_file = dir_path + "/temp_data/memory/model.h5"
         settings._files.root_dir = dir_path + "/temp_data"
+        settings.memory.load_saved_network = True
+        settings.memory.load_saved_experience = True
 
         world = WorldCreation(settings).get()
         preprocessor = ExperiencePreprocessor(settings)
@@ -140,14 +169,17 @@ class TestNetworkBasics(unittest.TestCase):
 
         s_net = np.array(s0).reshape((1,len(s0)))
         for i in range(0, 3):
+            os.remove(experience_file)
+            os.remove(model_file)
+            time.sleep(0.1)
+
             net.save_state()
-            self.assertTrue(os.path.isfile(dir_path + "/temp_data/memory/experience.pk"))
-            self.assertTrue(os.path.isfile(dir_path + "/temp_data/memory/model.h5"))
+            time.sleep(0.1)
+
+            self.assertTrue(os.path.isfile(experience_file))
+            self.assertTrue(os.path.isfile(model_file))
             net.load_state()
             net.freeze()
-
-            os.remove(dir_path + "/temp_data/memory/experience.pk")
-            os.remove(dir_path + "/temp_data/memory/model.h5")
 
             v0 = net.get(s_net)[0][2]
             v0 = net.model(s_net)[0][2]

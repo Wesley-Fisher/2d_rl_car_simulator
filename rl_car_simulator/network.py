@@ -129,7 +129,7 @@ class MyModel:
     def save_model(self, filename):
         with self.graph.as_default(), self.session.as_default():
             set_session(self.session)
-            self._model.save(filename)
+            self._model.save(filename, save_format='h5')
 
     def make_model(self):
         # MODEL NETWORK
@@ -506,8 +506,15 @@ class Network:
     def load_state(self):
         if self.settings._files.root_dir is None:
             return
-        memory_dir = self.settings._files.root_dir + "/memory"
 
+        net = self.load_model()
+        exp = self.load_experience()
+        self.save_state()
+        return net and exp
+
+
+    def load_model(self):
+        memory_dir = self.settings._files.root_dir + "/memory"
         
         if self.settings.memory.load_saved_network:
             try:
@@ -516,8 +523,14 @@ class Network:
                 self._model.load_model(network_file)
                 self.freeze()
                 print("Loaded Network")
+                return True
             except OSError as e:
-                print("Could not load network from file")
+                print("Could not load network from file %s: %s" % (network_file, str(e)))
+                return False
+        return False
+
+    def load_experience(self):
+        memory_dir = self.settings._files.root_dir + "/memory"
 
         if self.settings.memory.load_saved_experience:
             try:
@@ -530,20 +543,24 @@ class Network:
                     del_files = [f for f in files if f != main_exp_file]
                 else:
                     files = [main_exp_file]
+                return True
             except OSError as e:
-                print("Could not load memory from file")
+                print("Could not prepare to load memory from file %s: %s" % (main_exp_file, str(e)))
+                return False
         
         self.training_experience = []
         for file in files:
-            with open(memory_dir + "/" + file, 'rb') as handle:
-                exp = pk.load(handle)
-                self.training_experience = self.training_experience + exp
+            try:
+                with open(memory_dir + "/" + file, 'rb') as handle:
+                    exp = pk.load(handle)
+                    self.training_experience = self.training_experience + exp
+            except OSError as e:
+                print("Could not load memory from file %s: %s" % (main_exp_file, str(e)))
+                return False
         print("Loaded %d training samples" % len(self.training_experience))
-        self.save_state()
 
         if self.settings.memory.purge_merged_experience:
             for file in del_files:
                 os.remove(memory_dir + "/" + file)
-
-
+        return True
         
