@@ -25,3 +25,6 @@ jobs:
 
       - name: Install Dependencies
         run: python3 -m pip install -r dev_env/pip3_requirements.txt
+
+      - name: Run Unit Tests
+        run: python3 -m unittest discover -s test/
