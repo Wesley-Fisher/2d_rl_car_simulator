@@ -22,3 +22,6 @@ jobs:
       # Relative path
       - name: Checkout Repo
         uses: actions/checkout@v2
+
+      - name: Install Dependencies
+        run: python3 -m pip install -r dev_env/pip3_requirements.txt
