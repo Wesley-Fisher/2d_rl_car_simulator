@@ -51,6 +51,21 @@ SIG = CONSTANTS.sigma
 WIDTH = Utility().normal_int_width(SIG)
 GAUSS_FRAC = 1.0 / (SIG * math.sqrt(2*math.pi))
 
+class NetworkInputs:
+    def __init__(self):
+        self.state = None
+        self.target = None
+        self.advantage = None
+        self.ratio_force = None
+        self.ratio_angle = None
+        self.ret = None
+
+class NetworkOutputs:
+    def __init__(self):
+        self.value = 0.0
+        self.action_force = 0.0
+        self.action_steer = 0.0
+
 class MyModel:
     def __init__(self, settings,N, name):
         self.settings = settings
@@ -227,24 +242,45 @@ class MyModel:
         self._model.add_loss(loss)
         self._model.compile(self.optimizer)
         self._model._make_predict_function()
+
+    def prepare_data_internal(self, data):
+        states = np.array([d.state for d in data])
+        targets = np.array([d.target for d in data])
+        advantages = np.array([d.advantage for d in data])
+        ratios_force = np.array([d.ratio_force for d in data])
+        ratios_angle = np.array([d.ratio_angle for d in data])
+        return (states, targets, advantages, ratios_force, ratios_angle)
     
     def predict(self, data):
+        data = self.prepare_data_internal(data)
         with self.graph.as_default(), self.session.as_default():
             set_session(self.session)
-            return self._model.predict(data)
+            out = self._model.predict(data)
+            output = NetworkOutputs()
+            output.value = out[0][2]
+            output.force = out[0][0]
+            output.angle = out[0][1]
+            return output
     
     def fit(self, data, verbose, batch_size=1):
+        data = self.prepare_data_internal(data)
         with self.graph.as_default(), self.session.as_default():
             set_session(self.session)
             self._model.fit(data, verbose=verbose, batch_size=batch_size)
 
+    def make_dummy_data(self):
+        data = NetworkInputs()
+        data.state = [0.0]*self.N
+        data.target = [0.0,0.0,0.0]
+        data.advantage = [0.0]
+        data.ratio_force = [1.0]
+        data.ratio_angle = [1.0]
+        data.ret = [0.0]
+        return data
+
     def dummy_test(self):
-        state = np.array([ [0.0]*self.N])
-        target = np.array([[0.0,0.0,0.0]])
-        adv = np.array([[0.0]])
-        rat_f = np.array([[1.0]])
-        rat_a = np.array([[1.0]])
-        data = (state, target, adv, rat_f, rat_a)
+        data = self.make_dummy_data()
+        data = self.prepare_data_internal([data])
         with self.graph.as_default(), self.session.as_default():
             set_session(self.session)
             self._model.predict(data)
