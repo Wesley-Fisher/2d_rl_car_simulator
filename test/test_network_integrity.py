@@ -11,7 +11,7 @@ from rl_car_simulator.physics_engine import PhysicsEngine
 from rl_car_simulator.world import World
 from rl_car_simulator.world_creation import WorldCreation
 from rl_car_simulator.car import Car, CarState, CarStepExperience
-from rl_car_simulator.experience_preprocessor import ExperiencePreprocessor
+from rl_car_simulator.experience_preprocessor import ExperiencePreprocessor, TDExperience
 from rl_car_simulator.experience_engine import ExperienceEngine
 
 class TestNetworkBasics(unittest.TestCase):
@@ -34,6 +34,21 @@ class TestNetworkBasics(unittest.TestCase):
         v0 = net.model(s_net)[0][2]
         v0 = net.model(s_net, net._model)[0][2]
         v0 = net.model(s_net, net.frozen_model)[0][2]
+
+        ex = TDExperience()
+        ex.s0 = s0.reshape((1,8))
+        ex.s1 = s0.reshape((1,8))
+        ex.a_force = 1.0
+        ex.a_angle = 1.0
+        ex.pf = 0.5
+        ex.pa = 0.5
+        ex.r1 = 0.1
+        ex.step_in_ep = 0
+        ex.G = 1.0
+        ex.next_terminal = False
+
+        states, original, targets, advantages, returns, rats_f, rats_a = net.build_epoch_targets([ex])
+        net.fit_model(states, targets, advantages, rats_f, rats_a)
 
     def test_model_get_interfaces(self):
         settings = Settings()
