@@ -47,5 +47,10 @@ jobs:
       - name: Install Dependencies
         run: python3 -m pip install tensorflow==${{matrix.tensorflow-version}} keras==${{matrix.keras-version}} keyboard==0.13.5
 
+      - name: Check All Versions
+        run: |
+          python3 --version
+          python3 -m pip freeze
+
       - name: Run Unit Tests
         run: python3 -m unittest discover -s test/
