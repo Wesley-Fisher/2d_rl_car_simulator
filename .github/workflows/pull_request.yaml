@@ -34,10 +34,18 @@ jobs:
     strategy:
       matrix:
         include:
-          - python-version: 3.8.10
+          - python-version: 3.8.10 # Lowest TF2 version I could initially download in ci
             tensorflow-version: 2.2.0
             keras-version: 2.3.1
-            #numpy-version: 1.19.5
+          - python-version: 3.8.10
+            tensorflow-version: 2.3.0
+            keras-version: 2.3.1
+          - python-version: 3.8.10
+            tensorflow-version: 2.4.0
+            keras-version: 2.3.1
+          - python-version: 3.8.10
+            tensorflow-version: 2.5.0
+            keras-version: 2.3.1
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       # Relative path
