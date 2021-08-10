@@ -28,3 +28,37 @@ jobs:
 
       - name: Run Unit Tests
         run: python3 -m unittest discover -s test/
+
+  version-testing:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - python-version: 3.8.10 # Lowest TF2 version I could initially download in ci
+            tensorflow-version: 2.2.0
+            keras-version: 2.3.1
+          - python-version: 3.8.10
+            tensorflow-version: 2.3.0
+            keras-version: 2.3.1
+          - python-version: 3.8.10
+            tensorflow-version: 2.4.0
+            keras-version: 2.3.1
+          - python-version: 3.8.10
+            tensorflow-version: 2.5.0
+            keras-version: 2.3.1
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      # Relative path
+      - name: Checkout Repo
+        uses: actions/checkout@v2
+
+      - name: Install Dependencies
+        run: python3 -m pip install tensorflow==${{matrix.tensorflow-version}} keras==${{matrix.keras-version}} keyboard==0.13.5
+
+      - name: Check All Versions
+        run: |
+          python3 --version
+          python3 -m pip freeze
+
+      - name: Run Unit Tests
+        run: python3 -m unittest discover -s test/
