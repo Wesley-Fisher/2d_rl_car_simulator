@@ -313,14 +313,14 @@ class Network:
 
         self.freeze()
         
-
+    def get(self, x):
+        while self.freezing:
+            time.sleep(0.001)
+        return self.model(x, self.frozen_model)
 
     def model(self, state, model=None):
-        dummy_target = np.array([[1,1,1]])
-        dummy_advantage = np.array([[0]])
-        dummy_rat_f = np.array([[1.0]])
-        dummy_rat_a = np.array([[1.0]])
-        data = (state, dummy_target, dummy_advantage, dummy_rat_f, dummy_rat_a)
+        data = self._model.make_dummy_data()
+        data.state = state
 
         '''
         print("Pred Dummies")
@@ -335,13 +335,11 @@ class Network:
         '''
         
         if model is None:
-            tens = self._model.predict(data)
+            pred = self._model.predict([data])
         else:
-            tens = model.predict(data)
-        a0 = float(tens[0][0])
-        a1 = float(tens[0][1])
-        v = float(tens[0][2])
-        return [np.array([[a0], [a1], [v]])]
+            pred = model.predict([data])
+
+        return pred
 
     def predict_advantage(self, ex):
         _, _, _, advantages, _, _, _ = self.build_epoch_targets([ex])
@@ -352,68 +350,59 @@ class Network:
         self.frozen_model.copy_weights(self._model.get_weights())
         self.freezing = False
     
-    def get(self, x):
-        while self.freezing:
-            time.sleep(0.001)
-        x = x.reshape((1,self.N))
-        return self.model(x, self.frozen_model)
-    
     def add_experience(self, exp):
         self.new_training_experiences = self.new_training_experiences + exp
 
     def build_epoch_targets(self, exp):
-        states = []
+        data = []
         original = []
-        targets = []
-        advantages = []
-        returns = []
-        ratios_force = []
-        ratios_angle = []
-
         gamma = self.settings.learning.gamma
 
         for ex in exp:
+            inputs = NetworkInputs()
+            
             s0 = ex.s0
-            states.append(s0)
+            inputs.state = s0
 
             pred0 = self.model(s0)[0]
             pred1 = self.model(ex.s1)[0]
             original.append(pred0)
 
-            v0 = float(pred0[2])
-            v1 = float(pred1[2])
-
-            target_critic = ex.G#float(v0 + (ex.r1 + ex.G - v0))
-
+            
+            
             '''
+            v1 = float(pred1[2])
             if ex.next_terminal:
                 advantage = float(ex.r1 - v0)
             else:
                 advantage = float(ex.r1 + gamma * v1 - v0)
             '''
-            # 
-            advantage = float(ex.G - v0) #https://livebook.manning.com/book/deep-learning-and-the-game-of-go/chapter-12/46
-            advantages.append(advantage)
+            # https://livebook.manning.com/book/deep-learning-and-the-game-of-go/chapter-12/46
+            # MC Advantage
+            v0 = float(pred0[2])
+            advantage = float(ex.G - v0)
+            inputs.advantage = [advantage]
 
-            target = np.array([[ex.a_force, ex.a_angle, target_critic]])
-            targets.append(target)
+            target_critic = ex.G #float(v0 + (ex.r1 + ex.G - v0))
+            inputs.target = [ex.a_force, ex.a_angle, target_critic]
 
-            returns.append(ex.G)
+            inputs.ret = [ex.G]
 
             bf = clip(ex.pf, 1e-3, 1.0-1e-3)
             pf = self.util.normal_int_prob(ex.a_force, float(pred0[0]), SIG)
             pf = clip(pf, 1e-3, 1.0-1e-3)
             rat_f = clip(pf / bf, 0.1, 2.0)
-            ratios_force.append(rat_f)
+            inputs.ratio_force = [rat_f]
 
             ba = clip(ex.pa, 1e-3, 1.0-1e-3)
             pa = self.util.normal_int_prob(ex.a_angle, float(pred0[1]), SIG)
             pa = clip(pa, 1e-3, 1.0-1e-3)
             rat_a = clip(pa / ba, 0.1, 2.0)
-            ratios_angle.append(rat_a)
+            inputs.ratio_angle = [rat_a]
 
+            data.append(inputs)
 
-        return states, original, targets, advantages, returns, ratios_force, ratios_angle
+        return data, original
 
 
     def no_network_change(self, results, lim):
@@ -434,35 +423,7 @@ class Network:
         #print("Adding %d new samples to %d existing samples" % (len(new_exp), len(self.training_experience)))
         self.training_experience = self.training_experience + new_exp
 
-    def fit_model(self, states, targets, advantages, ratios_f, ratios_a, verbose=0):
-
-        def numpify(data, size):
-            N = len(data)
-            data = np.array(data)
-            data = data.reshape(N,size)
-            #data = np.array([data[0]])
-            #data = data.reshape()
-            return data
-
-        states = numpify(states, self.N)
-        targets = numpify(targets, 3)
-        advantages = numpify(advantages, 1)
-        ratios_f = numpify(ratios_f, 1)
-        ratios_a = numpify(ratios_a, 1)
-        data = (states, targets, advantages, ratios_f, ratios_a)
-        
-        '''
-        print("pre-fit data")
-        #print(states)
-        print(states.shape)
-        #print(targets)
-        print(targets.shape)
-        #print(advantages)
-        print(advantages.shape)
-        #print(data)
-        '''
-        
-         
+    def fit_model(self, data, verbose=0):
         self._model.fit(data, verbose=verbose, batch_size=1)
 
     def train_epoch(self):
@@ -475,27 +436,30 @@ class Network:
         idx = -1
         sample_results = []
 
-        states, original, targets, advantages, returns, ratios_f, ratios_a = self.build_epoch_targets(self.training_experience)
+        data, original = self.build_epoch_targets(self.training_experience)
 
-        self.fit_model(states, targets, advantages, ratios_f, ratios_a)
+        self.fit_model(data)
 
-        new = [self.model(state) for state in states]
+        new = [self.model(dat) for dat in data]
 
-        for orig, target, adv, newP, ret in zip(original[0:5], targets[0:5], advantages[0:5], new[0:5], returns[0:5]):
+        for orig, dat, newP in zip(original[0:5], data[0:5], new[0:5]):
+            ret = dat.ret
+            target = dat.target
+            adv = dat.advantage
             print("orig(%f,%f,%f)->ret(%f)->target(%f,%f,%f)->adv(%f)->(%f,%f,%f)" % (orig[0],orig[1],orig[2], ret, target[0][0], target[0][1], target[0][2], adv, newP[0][0], newP[0][1], newP[0][2]))
 
         sample_results= []
-        for orig, new in zip(original, new):
+        for orig, newP in zip(original, new):
             results = SampleTrainingResults()
-            results.c_step = float(new[0][2] - orig[2])
-            results.af_step = float(new[0][0] - orig[0])
-            results.aa_step = float(new[0][1] - orig[1])
+            results.c_step = float(newP[0][2] - orig[2])
+            results.af_step = float(newP[0][0] - orig[0])
+            results.aa_step = float(newP[0][1] - orig[1])
             sample_results.append(results)
 
             bad = False
-            bad = bad or  math.isnan(float(new[0][0]))
-            bad = bad or  math.isnan(float(new[0][1]))
-            bad = bad or  math.isnan(float(new[0][2]))
+            bad = bad or  math.isnan(float(newP[0][0]))
+            bad = bad or  math.isnan(float(newP[0][1]))
+            bad = bad or  math.isnan(float(newP[0][2]))
 
             if bad:
                 exit()
