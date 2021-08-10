@@ -364,12 +364,9 @@ class Network:
             s0 = ex.s0
             inputs.state = s0
 
-            pred0 = self.model(s0)[0]
-            pred1 = self.model(ex.s1)[0]
+            pred0 = self.model(s0)
             original.append(pred0)
 
-            
-            
             '''
             v1 = float(pred1[2])
             if ex.next_terminal:
@@ -379,7 +376,7 @@ class Network:
             '''
             # https://livebook.manning.com/book/deep-learning-and-the-game-of-go/chapter-12/46
             # MC Advantage
-            v0 = float(pred0[2])
+            v0 = pred0.value
             advantage = float(ex.G - v0)
             inputs.advantage = [advantage]
 
@@ -389,13 +386,13 @@ class Network:
             inputs.ret = [ex.G]
 
             bf = clip(ex.pf, 1e-3, 1.0-1e-3)
-            pf = self.util.normal_int_prob(ex.a_force, float(pred0[0]), SIG)
+            pf = self.util.normal_int_prob(ex.a_force, float(pred0.force), SIG)
             pf = clip(pf, 1e-3, 1.0-1e-3)
             rat_f = clip(pf / bf, 0.1, 2.0)
             inputs.ratio_force = [rat_f]
 
             ba = clip(ex.pa, 1e-3, 1.0-1e-3)
-            pa = self.util.normal_int_prob(ex.a_angle, float(pred0[1]), SIG)
+            pa = self.util.normal_int_prob(ex.a_angle, float(pred0.angle), SIG)
             pa = clip(pa, 1e-3, 1.0-1e-3)
             rat_a = clip(pa / ba, 0.1, 2.0)
             inputs.ratio_angle = [rat_a]
