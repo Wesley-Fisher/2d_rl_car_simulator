@@ -226,6 +226,44 @@ class TestNetworkBasics(unittest.TestCase):
             self.check_model_integrity(net, s0)
             self.assertTrue(True)                
 
+    def test_save_load_freeze_new_model(self):
+        settings = Settings()
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        experience_file = dir_path + "/temp_data/memory/experience.pk"
+        model_file = dir_path + "/temp_data/memory/model.h5"
+        settings._files.root_dir = dir_path + "/temp_data"
+        settings.memory.load_saved_network = True
+        settings.memory.load_saved_experience = True
+
+        world = WorldCreation(settings).get()
+        preprocessor = ExperiencePreprocessor(settings)
+        experience = ExperienceEngine(settings, world, preprocessor)
+        physics = PhysicsEngine(settings, world, experience)
+        cs = CarState()
+        car = Car(settings, cs)
+        s0 = physics.get_car_state(car)
+        net = Network(settings, len(s0))
+
+        os.remove(experience_file)
+        os.remove(model_file)
+        time.sleep(0.1)
+
+        net.save_state()
+        time.sleep(0.1)
+
+        net = Network(settings, len(s0))
+
+        self.assertTrue(os.path.isfile(experience_file))
+        self.assertTrue(os.path.isfile(model_file))
+        self.assertTrue(net.load_state())
+        net.freeze()
+
+        os.remove(experience_file)
+        os.remove(model_file)
+        time.sleep(0.1)
+
+        self.check_model_integrity(net, s0)
+        self.assertTrue(True)
 
 if __name__ == '__main__':
     unittest.main()
