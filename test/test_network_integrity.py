@@ -27,6 +27,14 @@ class TestNetworkBasics(unittest.TestCase):
         print(net._model._model.summary())
         self.assertTrue(True)
 
+    def check_model_integrity(self, net, s0):
+        s_net = np.array(s0).reshape((1,len(s0)))
+
+        v0 = net.get(s_net)[0][2]
+        v0 = net.model(s_net)[0][2]
+        v0 = net.model(s_net, net._model)[0][2]
+        v0 = net.model(s_net, net.frozen_model)[0][2]
+
     def test_model_get_interfaces(self):
         settings = Settings()
         world = WorldCreation(settings).get()
@@ -38,12 +46,7 @@ class TestNetworkBasics(unittest.TestCase):
         s0 = physics.get_car_state(car)
         net = Network(settings, len(s0))
 
-        s_net = np.array(s0).reshape((1,len(s0)))
-
-        v0 = net.get(s_net)[0][2]
-        v0 = net.model(s_net)[0][2]
-        v0 = net.model(s_net, net._model)[0][2]
-        v0 = net.model(s_net, net.frozen_model)[0][2]
+        self.check_model_integrity(net, s0)
         self.assertTrue(True)
 
     def test_save_load(self):
@@ -64,8 +67,6 @@ class TestNetworkBasics(unittest.TestCase):
         s0 = physics.get_car_state(car)
         net = Network(settings, len(s0))
 
-        s_net = np.array(s0).reshape((1,len(s0)))
-
         os.remove(experience_file)
         os.remove(model_file)
         time.sleep(0.1)
@@ -80,10 +81,7 @@ class TestNetworkBasics(unittest.TestCase):
         os.remove(model_file)
         time.sleep(0.1)
 
-        v0 = net.get(s_net)[0][2]
-        v0 = net.model(s_net)[0][2]
-        v0 = net.model(s_net, net._model)[0][2]
-        v0 = net.model(s_net, net.frozen_model)[0][2]
+        self.check_model_integrity(net, s0)
         self.assertTrue(True)
 
     def test_freeze(self):
@@ -100,13 +98,9 @@ class TestNetworkBasics(unittest.TestCase):
         s0 = physics.get_car_state(car)
         net = Network(settings, len(s0))
 
-        s_net = np.array(s0).reshape((1,len(s0)))
         net.freeze()
 
-        v0 = net.get(s_net)[0][2]
-        v0 = net.model(s_net)[0][2]
-        v0 = net.model(s_net, net._model)[0][2]
-        v0 = net.model(s_net, net.frozen_model)[0][2]
+        self.check_model_integrity(net, s0)
 
     def test_save_load_freeze(self):
         settings = Settings()
@@ -126,8 +120,6 @@ class TestNetworkBasics(unittest.TestCase):
         s0 = physics.get_car_state(car)
         net = Network(settings, len(s0))
 
-        s_net = np.array(s0).reshape((1,len(s0)))
-
         os.remove(experience_file)
         os.remove(model_file)
         time.sleep(0.1)
@@ -144,10 +136,7 @@ class TestNetworkBasics(unittest.TestCase):
         os.remove(model_file)
         time.sleep(0.1)
 
-        v0 = net.get(s_net)[0][2]
-        v0 = net.model(s_net)[0][2]
-        v0 = net.model(s_net, net._model)[0][2]
-        v0 = net.model(s_net, net.frozen_model)[0][2]
+        self.check_model_integrity(net, s0)
         self.assertTrue(True)
     
     def test_save_load_freeze_repeated(self):
@@ -168,7 +157,6 @@ class TestNetworkBasics(unittest.TestCase):
         s0 = physics.get_car_state(car)
         net = Network(settings, len(s0))
 
-        s_net = np.array(s0).reshape((1,len(s0)))
         for i in range(0, 3):
             os.remove(experience_file)
             os.remove(model_file)
@@ -182,10 +170,7 @@ class TestNetworkBasics(unittest.TestCase):
             net.load_state()
             net.freeze()
 
-            v0 = net.get(s_net)[0][2]
-            v0 = net.model(s_net)[0][2]
-            v0 = net.model(s_net, net._model)[0][2]
-            v0 = net.model(s_net, net.frozen_model)[0][2]
+            self.check_model_integrity(net, s0)
             self.assertTrue(True)
 
     def test_failed_load_freeze_repeated(self):
@@ -206,7 +191,6 @@ class TestNetworkBasics(unittest.TestCase):
         s0 = physics.get_car_state(car)
         net = Network(settings, len(s0))
 
-        s_net = np.array(s0).reshape((1,len(s0)))
         for i in range(0, 3):
             try:
                 os.remove(experience_file)
@@ -224,10 +208,7 @@ class TestNetworkBasics(unittest.TestCase):
             self.assertFalse(net.load_state())
             net.freeze()
 
-            v0 = net.get(s_net)[0][2]
-            v0 = net.model(s_net)[0][2]
-            v0 = net.model(s_net, net._model)[0][2]
-            v0 = net.model(s_net, net.frozen_model)[0][2]
+            self.check_model_integrity(net, s0)
             self.assertTrue(True)                
 
 
