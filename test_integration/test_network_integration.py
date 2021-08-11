@@ -317,13 +317,14 @@ class TestNetworkIntegration(unittest.TestCase):
         net = self.get_network_copy()
 
         ex = expGoal[0]
-        data, original = net.build_epoch_targets([ex])
-        net.fit_model(data * 200)
+        data, original = net.build_epoch_targets(expGoal[0:2])
+        net.fit_model(data * 1000)
 
+        # expGoal[0] closer to goal
         v0 = float(net.model(ex.s0).value)
         v1 = float(net.model(ex.s1).value)
-        r = ex.r1
-        self.assertLess(v0, v1 + r)
+
+        self.assertGreater(v0, v1)
         return
 
     def test_terminal_coll_learning(self):
@@ -334,13 +335,13 @@ class TestNetworkIntegration(unittest.TestCase):
         net = self.get_network_copy()
 
         ex = expColl[0]
-        data, original = net.build_epoch_targets([ex])
-        net.fit_model(data * 100)
+        data, original = net.build_epoch_targets(expColl[0:2])
+        net.fit_model(data * 200)
 
+        # expColl[0] closer to collision
         v0 = float(net.model(ex.s0).value)
         v1 = float(net.model(ex.s1).value)
-        r = ex.r1
-        self.assertLess(v0, v1 + r)
+        self.assertLess(v0, v1)
         return
 
     def test_split_experience_learning(self):
