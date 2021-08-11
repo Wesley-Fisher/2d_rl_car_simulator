@@ -35,48 +35,38 @@ class TestNetworkBasics(unittest.TestCase):
         s0 = physics.get_car_state(car)
         net = Network(settings, len(s0))
 
-        s_net = np.array(s0).reshape((1,len(s0)))
-        v0 = net.model(s_net)[0][2]
+        v0 = net.model(s0).value
         
         states = [s0]
         
         # Positive Change
-        targets = []
-        advantages = []
-        ratios_f = []
-        ratios_a = []
+        data = []
         for state in states:
-            s = np.array(state).reshape((1,len(state)))
-            target = net.model(s)[0]
-            #print(target)
-            target = np.array([[float(target[0])], [float(target[1])], [float(target[2]) + 1.0]])
-            targets.append(target)
-            advantages.append(float(target[2]))
-            ratios_f.append(1.0)
-            ratios_a.append(1.0)
+            dat = net.make_dummy_data()
+            net.state = state
+            output = net.model(s0)
+            dat.target = [output.force, output.angle, output.value + 1.0]
+            dat.advantage = [dat.target[2]]
+            data.append(dat)
 
-        net.fit_model(states, targets, advantages, ratios_f, ratios_a)
+        net.fit_model(data)
 
-        v1 = net.model(s_net)[0][2]
+        v1 = net.model(s0).value
         self.assertGreater(float(v1), float(v0))
 
         v0 = v1
         # Negative Change
-        targets = []
-        ratios_f = []
-        ratios_a = []
+        data = []
         for state in states:
-            s = np.array(state).reshape((1,len(state)))
-            target = net.model(s)[0]
-            #print(target)
-            target = np.array([[float(target[0])], [float(target[1])], [float(target[2]) - 1.0]])
-            targets.append(target)
-            advantages.append(float(target[2])) # May need to be a bigger - than the prev is a +?
-            ratios_f.append(1.0)
-            ratios_a.append(1.0)
+            dat = net.make_dummy_data()
+            net.state = state
+            output = net.model(s0)
+            dat.target = [output.force, output.angle, output.value - 1.0]
+            dat.advantage = [dat.target[2]]
+            data.append(dat)
 
-        net.fit_model(states, targets, advantages, ratios_f, ratios_a)
-        v1 = net.model(s_net)[0][2]
+        net.fit_model(data)
+        v1 = net.model(s0).value
         self.assertLess(float(v1),float(v0))
 
 
@@ -91,37 +81,29 @@ class TestNetworkBasics(unittest.TestCase):
         s0 = physics.get_car_state(car)
         net = Network(settings, len(s0))
 
-        s_net = np.array(s0).reshape((1,len(s0)))
-        af0 = net.model(s_net)[0][0]
-        aa0 = net.model(s_net)[0][1]
+        af0 = net.model(s0).force
+        aa0 = net.model(s0).angle
         states = [s0]
 
         # Increase likelihoods
-        targets = []
-        advantages = []
-        ratios_f = []
-        ratios_a = []
+        data = []
         for state in states:
-            s = np.array(state).reshape((1,len(state)))
-            target = net.model(s)[0]
-            #print(target)
-            pred_force_0 = float(target[0])
-            pred_angle_0 = float(target[1])
+            dat = net.make_dummy_data()
+            dat.state = state
+            output = net.model(s0)
 
             # Pretend that: 
             #  - 'actual' force used was greater than current
             #  - 'actual' angle used was lower than current
             #  - advantage high
             # Should see actions be more probable
-            target = np.array([[pred_force_0 + 0.5], [pred_angle_0 - 0.5], [float(target[2])]])
-            targets.append(target)
-            advantages.append(float(target[2]) + 5.0)
-            ratios_f.append(1.0)
-            ratios_a.append(1.0)
+            dat.target = [output.force + 0.5, output.angle - 0.5, output.value]
+            dat.advantage = [output.value + 5.0]
+            data.append(dat)
 
-        net.fit_model(states, targets, advantages, ratios_f, ratios_a)
-        af1 = net.model(s_net)[0][0]
-        aa1 = net.model(s_net)[0][1]
+        net.fit_model(data)
+        af1 = net.model(s0).force
+        aa1 = net.model(s0).angle
 
         self.assertGreater(float(af1), float(af0))
         self.assertLess(float(aa1), float(aa0))
@@ -138,37 +120,29 @@ class TestNetworkBasics(unittest.TestCase):
         s0 = physics.get_car_state(car)
         net = Network(settings, len(s0))
 
-        s_net = np.array(s0).reshape((1,len(s0)))
-        af0 = net.model(s_net)[0][0]
-        aa0 = net.model(s_net)[0][1]
+        af0 = net.model(s0).force
+        aa0 = net.model(s0).angle
         states = [s0]
 
-        # Decrease likelihoods
-        targets = []
-        advantages = []
-        ratios_f = []
-        ratios_a = []
+        # Increase likelihoods
+        data = []
         for state in states:
-            s = np.array(state).reshape((1,len(state)))
-            target = net.model(s)[0]
-            #print(target)
-            pred_force_0 = float(target[0])
-            pred_angle_0 = float(target[1])
+            dat = net.make_dummy_data()
+            dat.state = state
+            output = net.model(s0)
 
             # Pretend that: 
             #  - 'actual' force used was greater than current
             #  - 'actual' angle used was lower than current
             #  - advantage low
             # Should see actions be less probable
-            target = np.array([[pred_force_0 + 0.5], [pred_angle_0 - 0.5], [float(target[2])]])
-            targets.append(target)
-            advantages.append(-1.0)
-            ratios_f.append(1.0)
-            ratios_a.append(1.0)
+            dat.target = [output.force + 0.5, output.angle - 0.5, output.value]
+            dat.advantage = [output.value - 5.0]
+            data.append(dat)
 
-        net.fit_model(states, targets, advantages, ratios_f, ratios_a)
-        af1 = net.model(s_net)[0][0]
-        aa1 = net.model(s_net)[0][1]
+        net.fit_model(data)
+        af1 = net.model(s0).force
+        aa1 = net.model(s0).angle
 
         self.assertLess(float(af1), float(af0))
         self.assertGreater(float(aa1), float(aa0))
@@ -184,29 +158,23 @@ class TestNetworkBasics(unittest.TestCase):
         s0 = physics.get_car_state(car)
         net = Network(settings, len(s0))
 
-        s_net = np.array(s0).reshape((1,len(s0)))
-        v0 = net.model(s_net)[0][2]
+        v0 = net.model(s0).value
 
         states = [s0]
 
         for i in range(0, 25):
-            targets = []
-            advantages = []
-            ratios_f = []
-            ratios_a = []
+            data = []
             for state in states:
-                s = np.array(state).reshape((1,len(state)))
-                target = np.array(net.model(s)[0])
-                #print(target)
-                target = np.array([[float(target[0])], [float(target[1])], [float(target[2]) + 1.0]])
-                targets.append(target)
-                advantages.append(float(target[2]))
-                ratios_f.append(1.0)
-                ratios_a.append(1.0)
+                dat = net.make_dummy_data()
+                dat.state = state
+                output = net.model(s0)
+                dat.target = [output.force, output.angle, output.value + 1.0]
+                dat.advantage = [output.value]
+                data.append(dat)
 
-            net.fit_model(states, targets, advantages, ratios_f, ratios_a)
+            net.fit_model(data)
 
-            v1 = net.model(s_net)[0][2]
+            v1 = net.model(s0).value
             self.assertTrue(float(v1) - float(v0) > 0.0)
 
 

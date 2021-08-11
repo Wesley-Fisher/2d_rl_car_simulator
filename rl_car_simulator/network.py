@@ -340,6 +340,9 @@ class Network:
             pred = model.predict([data])
 
         return pred
+    
+    def make_dummy_data(self):
+        return self._model.make_dummy_data()
 
     def predict_advantage(self, ex):
         _, _, _, advantages, _, _, _ = self.build_epoch_targets([ex])
