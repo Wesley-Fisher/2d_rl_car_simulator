@@ -52,13 +52,13 @@ class ExperiencePreprocessor:
             G = self.settings.preprocessing.gamma * G + ex.r1
 
             td = TDExperience()
-            td.s0 = ex.s0.reshape((1,8))
+            td.s0 = ex.s0
             td.a_force = ex.a0.force
             td.a_angle = ex.a0.steer
             td.pf = ex.pf
             td.pa = ex.pa
             td.r1 = ex.r1
-            td.s1 = ex.s1.reshape((1,8))
+            td.s1 = ex.s1
             td.step_in_ep = N - i
             td.G = G
             td.next_terminal = ( i == 0)

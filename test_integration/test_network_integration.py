@@ -237,6 +237,11 @@ class TestNetworkIntegration(unittest.TestCase):
         #net.compile()
         return net
 
+
+
+
+
+
     def test_collision_learning(self):
         experience = copy.deepcopy(self.coll_exp_1)
         net = self.get_network_copy()
@@ -245,24 +250,24 @@ class TestNetworkIntegration(unittest.TestCase):
         exM = experience[int(len(experience)/2)]
         exF = experience[-1]
         try:
-            v0_last = float(net.model(ex0.s0)[0][2])
+            v0_last = float(net.model(ex0.s0).value)
         except AssertionError as e:
             print(e)
-            vM_last = float(net.model(exM.s0)[0][2])
-        vM_last = float(net.model(exM.s0)[0][2])
-        vF_last = float(net.model(exF.s0)[0][2])
+            vM_last = float(net.model(exM.s0).value)
+        vM_last = float(net.model(exM.s0).value)
+        vF_last = float(net.model(exF.s0).value)
 
-        v0 = float(net.model(ex0.s0)[0][2])
-        vM = float(net.model(exM.s0)[0][2])
-        vF = float(net.model(exF.s0)[0][2])
+        v0 = float(net.model(ex0.s0).value)
+        vM = float(net.model(exM.s0).value)
+        vF = float(net.model(exF.s0).value)
 
         for i in range(0, 5):
-            states, original, targets, advantages, returns, rats_f, rats_a = net.build_epoch_targets(experience)
-            net.fit_model(states * 100, targets * 100, advantages * 100, rats_f * 100, rats_a * 100)
+            data, original = net.build_epoch_targets(experience)
+            net.fit_model(data)
             
-            v0 = float(net.model(ex0.s0)[0][2])
-            vM = float(net.model(exM.s0)[0][2])
-            vF = float(net.model(exF.s0)[0][2])
+            v0 = float(net.model(ex0.s0).value)
+            vM = float(net.model(exM.s0).value)
+            vF = float(net.model(exF.s0).value)
 
             self.assertLess(v0, v0_last)
             self.assertLess(vM, vM_last)
@@ -280,17 +285,17 @@ class TestNetworkIntegration(unittest.TestCase):
         exM = experience[int(len(experience)/2)]
         exF = experience[-1]
 
-        v0_last = float(net.model(ex0.s0)[0][2])
-        vM_last = float(net.model(exM.s0)[0][2])
-        vF_last = float(net.model(exF.s0)[0][2])
+        v0_last = float(net.model(ex0.s0).value)
+        vM_last = float(net.model(exM.s0).value)
+        vF_last = float(net.model(exF.s0).value)
 
         for i in range(0, 5):
-            states, original, targets, advantages, returns, rats_f, rats_a = net.build_epoch_targets(experience)
-            net.fit_model(states * 1000, targets * 1000, advantages * 1000, rats_f * 1000, rats_a * 1000)
+            data, original = net.build_epoch_targets(experience)
+            net.fit_model(data * 1000)
             
-            v0 = float(net.model(ex0.s0)[0][2])
-            vM = float(net.model(exM.s0)[0][2])
-            vF = float(net.model(exF.s0)[0][2])
+            v0 = float(net.model(ex0.s0).value)
+            vM = float(net.model(exM.s0).value)
+            vF = float(net.model(exF.s0).value)
 
             # Note: can have some variance in results
             #  with number of samples used, so may see
@@ -312,11 +317,11 @@ class TestNetworkIntegration(unittest.TestCase):
         net = self.get_network_copy()
 
         ex = expGoal[0]
-        states, original, targets, advantages, returns, rats_f, rats_a = net.build_epoch_targets([ex])
-        net.fit_model(states * 200, targets * 200, advantages * 200, rats_f * 200, rats_a * 200)
+        data, original = net.build_epoch_targets([ex])
+        net.fit_model(data * 200)
 
-        v0 = float(net.model(ex.s0)[0][2])
-        v1 = float(net.model(ex.s1)[0][2])
+        v0 = float(net.model(ex.s0).value)
+        v1 = float(net.model(ex.s1).value)
         r = ex.r1
         self.assertLess(v0, v1 + r)
         return
@@ -329,11 +334,11 @@ class TestNetworkIntegration(unittest.TestCase):
         net = self.get_network_copy()
 
         ex = expColl[0]
-        states, original, targets, advantages, returns, rats_f, rats_a = net.build_epoch_targets([ex])
-        net.fit_model(states * 100, targets * 100, advantages * 100, rats_f * 100, rats_a * 100)
+        data, original = net.build_epoch_targets([ex])
+        net.fit_model(data * 100)
 
-        v0 = float(net.model(ex.s0)[0][2])
-        v1 = float(net.model(ex.s1)[0][2])
+        v0 = float(net.model(ex.s0).value)
+        v1 = float(net.model(ex.s1).value)
         r = ex.r1
         self.assertLess(v0, v1 + r)
         return
@@ -354,24 +359,24 @@ class TestNetworkIntegration(unittest.TestCase):
         expColl.reverse()
         all_exp = expGoal + expColl
 
-        vG0_last = float(net.model(exG0.s0)[0][2])
-        vGF_last = float(net.model(exGF.s0)[0][2])
-        vC0_last = float(net.model(exC0.s0)[0][2])
-        vCF_last = float(net.model(exCF.s0)[0][2])
+        vG0_last = float(net.model(exG0.s0).value)
+        vGF_last = float(net.model(exGF.s0).value)
+        vC0_last = float(net.model(exC0.s0).value)
+        vCF_last = float(net.model(exCF.s0).value)
 
 
         # Look for overall improvement in 5 iterations
         # of a few steps each
         for j in range(0, 5):
-            states, original, targets, advantages, returns, rats_f, rats_a = net.build_epoch_targets(all_exp)
-            net.fit_model(states * 200, targets * 200, advantages * 200, rats_f * 200, rats_a * 200)
+            data, original = net.build_epoch_targets(all_exp)
+            net.fit_model(data * 200)
 
             # Can't be as sure with training with both sets
             # So only test final results
-            vG0 = float(net.model(exG0.s0)[0][2])
-            vGF = float(net.model(exGF.s0)[0][2])
-            vC0 = float(net.model(exC0.s0)[0][2])
-            vCF = float(net.model(exCF.s0)[0][2])
+            vG0 = float(net.model(exG0.s0).value)
+            vGF = float(net.model(exGF.s0).value)
+            vC0 = float(net.model(exC0.s0).value)
+            vCF = float(net.model(exCF.s0).value)
 
         # Final States should have clear learning
         self.assertGreater(vGF, vGF_last)
@@ -402,28 +407,28 @@ class TestNetworkIntegration(unittest.TestCase):
         #    print(ex.G)
 
 
-        diff_G0_last = abs(float(net.model(exG0.s0)[0][1] - AG))
-        diff_C0_last = abs(float(net.model(exC0.s0)[0][1] - AC))
+        diff_G0_last = abs(float(net.model(exG0.s0).angle - AG))
+        diff_C0_last = abs(float(net.model(exC0.s0).angle - AC))
         #print("*****")
 
         # Look for overall improvement in 5 iterations
         # of a few steps each
         for j in range(0, 5):
             #print("Split round training %d" % (j+1))
-            #print("a first: %f" % float(net.model(exG0.s0)[0][1] ))
-            states, original, targets, advantages, returns, rats_f, rats_a = net.build_epoch_targets(all_exp)
-            net.fit_model(states * 200, targets * 200, advantages * 200, rats_f * 200, rats_a * 200)
+            #print("a first: %f" % float(net.model(exG0.s0).angle ))
+            data, original = net.build_epoch_targets(all_exp)
+            net.fit_model(data * 200)
 
             #print_exp("Vals",all_exp, True)
 
             # Can't be as sure with training with both sets
             # So only test final results
-            aG = float(net.model(exG0.s0)[0][1])
-            aC = float(net.model(exC0.s0)[0][1])
-            vG0 = float(net.model(exG0.s0)[0][2])
-            vC0 = float(net.model(exC0.s0)[0][2])
-            vG1 = float(net.model(exG0.s1)[0][2])
-            vC1 = float(net.model(exC0.s1)[0][2])
+            aG = float(net.model(exG0.s0).angle)
+            aC = float(net.model(exC0.s0).angle)
+            vG0 = float(net.model(exG0.s0).value)
+            vC0 = float(net.model(exC0.s0).value)
+            vG1 = float(net.model(exG0.s1).value)
+            vC1 = float(net.model(exC0.s1).value)
             advG = float(net.predict_advantage(exG0))
             advC = float(net.predict_advantage(exC0))
             diff_G0 = abs(aG - AG)

@@ -28,16 +28,14 @@ class TestNetworkBasics(unittest.TestCase):
         self.assertTrue(True)
 
     def check_model_integrity(self, net, s0):
-        s_net = np.array(s0).reshape((1,len(s0)))
-
-        v0 = net.get(s_net)[0][2]
-        v0 = net.model(s_net)[0][2]
-        v0 = net.model(s_net, net._model)[0][2]
-        v0 = net.model(s_net, net.frozen_model)[0][2]
+        net.get(s0)
+        net.model(s0)
+        net.model(s0, net._model)
+        net.model(s0, net.frozen_model)
 
         ex = TDExperience()
-        ex.s0 = s0.reshape((1,8))
-        ex.s1 = s0.reshape((1,8))
+        ex.s0 = s0
+        ex.s1 = s0
         ex.a_force = 1.0
         ex.a_angle = 1.0
         ex.pf = 0.5
@@ -47,8 +45,8 @@ class TestNetworkBasics(unittest.TestCase):
         ex.G = 1.0
         ex.next_terminal = False
 
-        states, original, targets, advantages, returns, rats_f, rats_a = net.build_epoch_targets([ex])
-        net.fit_model(states, targets, advantages, rats_f, rats_a)
+        data, _ = net.build_epoch_targets([ex])
+        net.fit_model(data)
 
     def test_model_get_interfaces(self):
         settings = Settings()
