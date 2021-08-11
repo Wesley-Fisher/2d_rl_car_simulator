@@ -345,8 +345,8 @@ class Network:
         return self._model.make_dummy_data()
 
     def predict_advantage(self, ex):
-        _, _, _, advantages, _, _, _ = self.build_epoch_targets([ex])
-        return advantages[0]
+        data, original = self.build_epoch_targets([ex])
+        return data[0].advantage[0]
 
     def freeze(self):
         self.freezing = True
