@@ -124,52 +124,7 @@ class Network:
         self.new_training_experiences = self.new_training_experiences + exp
 
     def build_epoch_targets(self, exp):
-        data = []
-        original = []
-        gamma = self.settings.learning.gamma
-
-        for ex in exp:
-            inputs = NetworkInputs()
-            
-            s0 = ex.s0
-            inputs.state = s0
-
-            pred0 = self.model(s0)
-            original.append(pred0)
-
-            '''
-            v1 = float(pred1[2])
-            if ex.next_terminal:
-                advantage = float(ex.r1 - v0)
-            else:
-                advantage = float(ex.r1 + gamma * v1 - v0)
-            '''
-            # https://livebook.manning.com/book/deep-learning-and-the-game-of-go/chapter-12/46
-            # MC Advantage
-            v0 = pred0.value
-            advantage = float(ex.G - v0)
-            inputs.advantage = [advantage]
-
-            target_critic = ex.G #float(v0 + (ex.r1 + ex.G - v0))
-            inputs.target = [ex.a_force, ex.a_angle, target_critic]
-
-            inputs.ret = [ex.G]
-
-            bf = clip(ex.pf, 1e-3, 1.0-1e-3)
-            pf = self.util.normal_int_prob(ex.a_force, float(pred0.force), SIG)
-            pf = clip(pf, 1e-3, 1.0-1e-3)
-            rat_f = clip(pf / bf, 0.1, 2.0)
-            inputs.ratio_force = [rat_f]
-
-            ba = clip(ex.pa, 1e-3, 1.0-1e-3)
-            pa = self.util.normal_int_prob(ex.a_angle, float(pred0.angle), SIG)
-            pa = clip(pa, 1e-3, 1.0-1e-3)
-            rat_a = clip(pa / ba, 0.1, 2.0)
-            inputs.ratio_angle = [rat_a]
-
-            data.append(inputs)
-
-        return data, original
+        return self._model.build_epoch_targets(exp)
 
 
     def no_network_change(self, results, lim):
