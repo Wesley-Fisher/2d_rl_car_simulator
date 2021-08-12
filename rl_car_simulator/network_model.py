@@ -59,12 +59,18 @@ class MyModel:
         self.graph = tf.Graph()
         self.session = tf.compat.v1.Session(graph=self.graph)
 
-        self.input = None
-        self.target_prediction = None
-        self.advantage = None
-        self.ratio_f = None
-        self.ratio_a = None
-        self.out = None
+        self.state_input = None
+        self.applied_force_input = None
+        self.applied_angle_input = None
+        self.critic_target_input = None
+        self.advantage_input = None
+        self.ratio_f_input = None
+        self.ratio_a_input = None
+
+        self.force_out = None
+        self.angle_out = None
+        self.value_prediction = None
+
         self._model = None
         self.optimizer=None
 
@@ -109,18 +115,35 @@ class MyModel:
 
     def handle_new_model(self, compile=True):
         inputs = self._model.inputs
-        self.input = inputs[0]
-        self.target_prediction = inputs[1]
-        self.advantage = inputs[2]
-        self.ratio_f = inputs[3]
-        self.ratio_a = inputs[4]
+        outputs = self._model.outputs
+
+        self.state_input = inputs[0]
+        self.applied_force_input = inputs[1]
+        self.applied_angle_input = inputs[2]
+        self.critic_target_input = inputs[3]
+        self.advantage_input = inputs[4]
+        self.ratio_f_input = inputs[5]
+        self.ratio_a_input = inputs[6]
+
+        self.force_out = outputs[0]
+        self.angle_out = outputs[1]
+        self.value_prediction = outputs[2]
         '''
         print(self.input)
         print(self.target_prediction)
         print(self.advantage)
         '''
-        self.out = self._model.output
-        self._model = Model([self.input, self.target_prediction, self.advantage, self.ratio_f, self.ratio_a], self.out, name=self.name+'_actor_critic')
+        inputs = [self.state_input,
+                  self.applied_force_input,
+                  self.applied_angle_input,
+                  self.critic_target_input,
+                  self.advantage_input,
+                  self.ratio_f_input,
+                  self.ratio_a_input]
+        outputs = [self.force_out,
+                   self.angle_out,
+                   self.value_prediction]
+        self._model = Model(inputs, outputs, name=self.name+'_actor_critic')
         if compile:
             self.compile()
 
@@ -137,13 +160,23 @@ class MyModel:
         ib = initializers.RandomNormal(stddev=0.1, seed=2)
         WN = int(self.W*self.N + 1)
 
-        self.input = Input(shape=(8), name=self.name+'_state_in')
-        self.target_prediction = Input(shape=(3,), name=self.name+'_target_in_layer')
-        self.advantage = Input(shape=(1), name=self.name+'_advantage_in')
-        self.ratio_f = Input(shape=(1), name=self.name+'_rat_f_in')
-        self.ratio_a = Input(shape=(1), name=self.name+'_rat_a_in')
+        self.state_input = Input(shape=(self.N), name=self.name+'_state_in')
+        self.applied_force_input = Input(shape=(1), name=self.name+'_force_in')
+        self.applied_angle_input = Input(shape=(1), name=self.name+'_angle_in')
+        self.critic_target_input = Input(shape=(1), name=self.name+'_critic_in')
+        self.advantage_input = Input(shape=(1), name=self.name+'_advantage_in')
+        self.ratio_f_input = Input(shape=(1), name=self.name+'_ratio_f_in')
+        self.ratio_a_input = Input(shape=(1), name=self.name+'_ratio_a_in')
 
-        layer = Dense(WN, kernel_initializer=ik, bias_initializer=ib, name="dense_input")(self.input)
+        inputs = [self.state_input,
+                  self.applied_force_input,
+                  self.applied_angle_input,
+                  self.critic_target_input,
+                  self.advantage_input,
+                  self.ratio_f_input,
+                  self.ratio_a_input]
+
+        layer = Dense(WN, kernel_initializer=ik, bias_initializer=ib, name="dense_input")(self.state_input)
         layer = ReLU(negative_slope=0.3, name="dense_input_relu")(layer)
 
         for i in range(0, self.D):
@@ -151,9 +184,19 @@ class MyModel:
             layer = ReLU(negative_slope=0.3, name='dense_relu'+str(i))(layer)
 
         out1 = Dense(3, kernel_initializer=ik, bias_initializer=ib, name='dense_output')(layer)
-        self.out = ReLU(negative_slope=1.0, name='dense_output_relu')(out1)
 
-        self._model = Model([self.input, self.target_prediction, self.advantage, self.ratio_f, self.ratio_a], self.out, name=self.name+'_actor_critic')
+        force_out = Dense(1, kernel_initializer=ik, bias_initializer=ib, name='force_dense_out')(out1)
+        self.force_out = ReLU(negative_slope=1.0, name='force_output')(force_out)
+
+        angle_out = Dense(1, kernel_initializer=ik, bias_initializer=ib, name='angle_dense_out')(out1)
+        self.angle_out = ReLU(negative_slope=1.0, name='angle_output')(angle_out)
+
+        value_prediction = Dense(1, kernel_initializer=ik, bias_initializer=ib, name='value_dense_out')(out1)
+        self.value_prediction = ReLU(negative_slope=1.0, name='value_output')(value_prediction)
+
+        outputs = [self.force_out, self.angle_out, self.value_prediction]
+
+        self._model = Model(inputs, outputs, name=self.name+'_actor_critic')
         self.optimizer = None
 
 
@@ -163,7 +206,7 @@ class MyModel:
     def compile(self):
         # LOSS AND OPTIMIZATION
 
-        def actor_critic_loss(output, pred, advantage, ratio_f, ratio_a):
+        def actor_critic_loss(force_out, angle_out, value_out, force_used, angle_used, return_value, advantage, ratio_f, ratio_a):
             # Output: network output: force, angle, value
             # Pred: predicted target: used force, use angle, episode return
             # Advantage: advantage: ex.r1 + gamma * pred(v1) - pred(v0)
@@ -176,7 +219,7 @@ class MyModel:
             '''
 
             # Want critic to predict episode return
-            critic_loss = K.pow(pred[0,2] - output[0,2], 2)
+            critic_loss = K.pow(return_value - value_out, 2)
 
             def action_loss(act, pred, rat):
                 # Heavy Influence: https://www.tensorflow.org/tutorials/reinforcement_learning/actor_critic
@@ -210,29 +253,39 @@ class MyModel:
                 log_prob = K.clip(log_prob, 1e-5, 100.0)
                 loss = log_prob * advantage
                 return loss * rat
-            force_loss = action_loss(output[0,0],pred[0,0], ratio_f)
-            angle_loss = action_loss(output[0,1],pred[0,1], ratio_a)
+            force_loss = action_loss(force_out, force_used, ratio_f)
+            angle_loss = action_loss(angle_out, angle_used, ratio_a)
 
             # Not sure why angles tend to go off in one direction yet
             # try to limit for now
-            large_angle_loss = K.square(output[0,1])
-            neg_speed_loss = -output[0,0]
+            large_angle_loss = K.square(angle_out)
+            neg_speed_loss = -force_out
 
             return critic_loss + force_loss + angle_loss + large_angle_loss
 
         self.optimizer = Adam(learning_rate=self.settings.learning.alpha, clipnorm=1.0)
-        loss = actor_critic_loss(self.out, self.target_prediction, self.advantage, self.ratio_f, self.ratio_a)
+        loss = actor_critic_loss(self.force_out,
+                                 self.angle_out,
+                                 self.value_prediction,
+                                 self.applied_force_input,
+                                 self.applied_angle_input,
+                                 self.critic_target_input,
+                                 self.advantage_input,
+                                 self.ratio_f_input,
+                                 self.ratio_a_input)
         self._model.add_loss(loss)
         self._model.compile(self.optimizer)
         self._model._make_predict_function()
 
     def prepare_data_internal(self, data):
         states = np.array([d.state for d in data])
-        targets = np.array([d.target for d in data])
-        advantages = np.array([d.advantage for d in data])
+        forces = np.array([d.target[0] for d in data])
+        angles = np.array([d.target[1] for d in data])
+        values = np.array([d.target[2] for d in data])
+        advantages = np.array([d.advantage[0] for d in data])
         ratios_force = np.array([d.ratio_force for d in data])
         ratios_angle = np.array([d.ratio_angle for d in data])
-        return (states, targets, advantages, ratios_force, ratios_angle)
+        return (states, forces, angles, values, advantages, ratios_force, ratios_angle)
     
     def predict(self, data):
         data = self.prepare_data_internal(data)
@@ -240,9 +293,9 @@ class MyModel:
             set_session(self.session)
             out = self._model.predict(data)
             output = NetworkOutputs()
-            output.value = out[0][2]
+            output.value = out[2][0]
             output.force = out[0][0]
-            output.angle = out[0][1]
+            output.angle = out[1][0]
             return output
     
     def fit(self, data, verbose, batch_size=1):
