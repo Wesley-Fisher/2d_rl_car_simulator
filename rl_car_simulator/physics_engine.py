@@ -71,7 +71,7 @@ class PhysicsEngine:
 
         v = v + (car.controls.force - v*self.settings.car_properties.fric) *  dt / self.settings.car_properties.mass
 
-        car.state.dh = float(v * car.controls.steer)
+        car.state.dh = float(v * car.controls.angle)
         car.state.h = float(car.state.h + car.state.dh * dt) 
 
         car.state.v = float(v)

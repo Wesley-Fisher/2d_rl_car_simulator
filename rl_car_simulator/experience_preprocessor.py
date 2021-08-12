@@ -54,7 +54,7 @@ class ExperiencePreprocessor:
             td = TDExperience()
             td.s0 = ex.s0
             td.a_force = ex.a0.force
-            td.a_angle = ex.a0.steer
+            td.a_angle = ex.a0.angle
             td.pf = ex.pf
             td.pa = ex.pa
             td.r1 = ex.r1
