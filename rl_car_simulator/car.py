@@ -13,11 +13,11 @@ class CarState:
         self.vh = 0.0
 
 class CarControls:
-    def __init__(self, force, steer, p_force, p_steer):
+    def __init__(self, force, angle, p_force, p_angle):
         self.force = force
-        self.steer = steer
+        self.angle = angle
         self.pf = p_force
-        self.pa = p_steer
+        self.pa = p_angle
 
 class Car:
     def __init__(self, settings, state):

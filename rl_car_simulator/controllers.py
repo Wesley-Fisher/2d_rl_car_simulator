@@ -27,7 +27,7 @@ class Controller:
     def get_car_control(self, state):
         control = self.get_controls(state)
         control.force = min(max(control.force, -self.settings.keyboard.force), self.settings.keyboard.force)
-        control.steer = min(max(control.steer, -self.settings.keyboard.angle), self.settings.keyboard.angle)
+        control.angle = min(max(control.angle, -self.settings.keyboard.angle), self.settings.keyboard.angle)
         return control
 
 class KeyboardController(Controller):
@@ -170,10 +170,10 @@ class ExplorationController(Controller):
         c2 = self.rnd.get_car_control(state)
 
         f = c1.force + c2.force
-        a = c1.steer + c2.steer
+        a = c1.angle + c2.angle
 
         pf = self.util.normal_int_prob(f, c1.force, self.settings.statistics.sigma)
-        pa = self.util.normal_int_prob(a, c1.steer, self.settings.statistics.sigma)
+        pa = self.util.normal_int_prob(a, c1.angle, self.settings.statistics.sigma)
         return CarControls(f, a, pf, pa)
 
 
