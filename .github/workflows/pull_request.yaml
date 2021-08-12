@@ -62,3 +62,21 @@ jobs:
 
       - name: Run Unit Tests
         run: python3 -m unittest discover -s test/
+
+  integration-testing:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8.10]
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      # Relative path
+      - name: Checkout Repo
+        uses: actions/checkout@v2
+
+      - name: Install Dependencies
+        run: python3 -m pip install -r dev_env/pip3_requirements.txt
+
+      - name: Run Unit Tests
+        run: python3 -m unittest discover -s test_integration/
+  
