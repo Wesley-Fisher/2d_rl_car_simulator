@@ -2,7 +2,7 @@ import keyboard
 import random
 import math
 
-from .car import CarControls
+from .car import CarControls, DirectControlAction
 from .utilities import Utility
 
 class ControllerTypes:
@@ -26,8 +26,8 @@ class Controller:
 
     def get_car_control(self, state):
         control = self.get_controls(state)
-        control.force = min(max(control.force, -self.settings.keyboard.force), self.settings.keyboard.force)
-        control.angle = min(max(control.angle, -self.settings.keyboard.angle), self.settings.keyboard.angle)
+        #control.force = min(max(control.force, -self.settings.keyboard.force), self.settings.keyboard.force)
+        #control.angle = min(max(control.angle, -self.settings.keyboard.angle), self.settings.keyboard.angle)
         return control
 
 class KeyboardController(Controller):
@@ -45,7 +45,7 @@ class KeyboardController(Controller):
         r = keyboard.is_pressed('d')
         angle = float(r - l) * self.settings.keyboard.angle
 
-        return CarControls(force, angle, self.stat_p, self.stat_p)
+        return CarControls(DirectControlAction(force, self.stat_p), DirectControlAction(angle, self.stat_a))
 
 class NetworkController(Controller):
     def __init__(self, settings, network):
@@ -56,6 +56,7 @@ class NetworkController(Controller):
     def get_controls(self, state):
         control = self.network.get(state)
         #print(control)
+        '''
         force = float(control.force) + random.gauss(0.0, 0.1*self.settings.statistics.sigma)
         angle = float(control.angle) + random.gauss(0.0, 0.1*self.settings.statistics.sigma)
         force = min(max(force, -self.settings.keyboard.force), self.settings.keyboard.force)
@@ -64,9 +65,10 @@ class NetworkController(Controller):
             force = 0.0
         if math.isnan(angle):
             angle = 0.0
+        '''
 
         # Network follows exactly what it predicts
-        return CarControls(force, angle, self.stat_p, self.stat_p)
+        return CarControls(control.force, control.angle)
 
 class HardCodedController(Controller):
     def __init__(self, settings, f, a):
@@ -77,7 +79,7 @@ class HardCodedController(Controller):
 
     def get_controls(self, state):
         # Hardcoded has 100% probability of taking this action
-        return CarControls(self.f, self.a, 1.0, 1.0)
+        return CarControls(DirectControlAction(self.f, 1.0), DirectControlAction(self.a, 0.1))
 
 class RandomController(Controller):
     def __init__(self, settings, force_bias_range=2, force_step=0.5, angle_bias_range=0.5, angle_step=0.1):
@@ -99,7 +101,7 @@ class RandomController(Controller):
         self.a = self.a + random.gauss(0, self.angle_step * self.settings.physics.control_timestep)
         self.f = self.f + random.gauss(0, self.force_step * self.settings.physics.control_timestep)
         # Stick to default probability for now
-        return CarControls(self.f, self.a, self.stat_p, self.stat_p)
+        return CarControls(DirectControlAction(self.f, self.stat_p), DirectControlAction(self.a, self.stat_p))
 
 class FeedbackController(Controller):
     def __init__(self, settings):
@@ -149,7 +151,7 @@ class FeedbackController(Controller):
             angle = dr - dl
             force = -2
 
-        return CarControls(force, angle, 1.0, 1.0)
+        return CarControls(DirectControlAction(force, 1.0), DirectControlAction(angle, 0.1))
 
 
 class ExplorationController(Controller):
@@ -157,24 +159,41 @@ class ExplorationController(Controller):
         Controller.__init__(self, settings)
         self.settings = settings
         self.base = base
-        self.rnd = RandomController(settings, self.settings.exploration.force_bias_range,
-                                              self.settings.exploration.force_step,
-                                              self.settings.exploration.angle_bias_range,
-                                              self.settings.exploration.angle_step)
+        self.random_force = None
+        self.random_angle = None
+        self.Nf = -1
+        self.Na = -1
 
     def reset(self):
-        self.rnd.reset
+        if self.Nf < 0 or self.Na < 0:
+            return
+        
+        self.random_force = []
+        for i in range(0, self.Nf):
+            r = self.settings.exploration.force_bias_range
+            self.random_force.append(random.uniform(-r, r))
+        
+        self.random_angle = []
+        for i in range(0, self.Na):
+            r = self.settings.exploration.angle_bias_range
+            self.random_angle.append(random.uniform(-r, r)) 
 
     def get_car_control(self, state):
         c1 = self.base.get_car_control(state)
-        c2 = self.rnd.get_car_control(state)
+        
+        if self.random_force is None or self.random_angle is None:
+            self.Nf = c1.force.get_random_elements()
+            self.Na = c1.angle.get_random_elements()
+            self.reset()
 
-        f = c1.force + c2.force
-        a = c1.angle + c2.angle
 
-        pf = self.util.normal_int_prob(f, c1.force, self.settings.statistics.sigma)
-        pa = self.util.normal_int_prob(a, c1.angle, self.settings.statistics.sigma)
-        return CarControls(f, a, pf, pa)
+        self.random_force = [rf + random.gauss(0, self.settings.exploration.force_step * self.settings.physics.control_timestep) for rf in self.random_force]
+        self.random_angle = [ra + random.gauss(0, self.settings.exploration.angle_step * self.settings.physics.control_timestep) for ra in self.random_angle]
+        
+        c1.force.apply_noise(self.random_force)
+        c1.angle.apply_noise(self.random_angle)
+
+        return CarControls(c1.force, c1.angle)
 
 
 class Controllers:

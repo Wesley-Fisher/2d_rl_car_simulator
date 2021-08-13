@@ -4,10 +4,8 @@ import numpy as np
 class TDExperience:
     def __init__(self):
         self.s0 = None
-        self.a_force = None
-        self.a_angle = None
-        self.pf = None
-        self.pa = None
+        self.action_force = None
+        self.action_angle = None
         self.G = None
         self.s1 = None
         self.step_in_ep = 0
@@ -53,10 +51,8 @@ class ExperiencePreprocessor:
 
             td = TDExperience()
             td.s0 = ex.s0
-            td.a_force = ex.a0.force
-            td.a_angle = ex.a0.angle
-            td.pf = ex.pf
-            td.pa = ex.pa
+            td.action_force = ex.a0.force
+            td.action_angle = ex.a0.angle
             td.r1 = ex.r1
             td.s1 = ex.s1
             td.step_in_ep = N - i

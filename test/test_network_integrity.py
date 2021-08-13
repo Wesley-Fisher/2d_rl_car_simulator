@@ -10,7 +10,7 @@ from rl_car_simulator.network import Network
 from rl_car_simulator.physics_engine import PhysicsEngine
 from rl_car_simulator.world import World
 from rl_car_simulator.world_creation import WorldCreation
-from rl_car_simulator.car import Car, CarState, CarStepExperience
+from rl_car_simulator.car import Car, CarState, CarStepExperience, DirectControlAction
 from rl_car_simulator.experience_preprocessor import ExperiencePreprocessor, TDExperience
 from rl_car_simulator.experience_engine import ExperienceEngine
 
@@ -28,7 +28,7 @@ class TestNetworkBasics(unittest.TestCase):
         self.assertTrue(True)
 
     def check_model_integrity(self, net, s0):
-        net.get(s0)
+        out = net.get(s0)
         net.model(s0)
         net.model(s0, net._model)
         net.model(s0, net.frozen_model)
@@ -36,10 +36,9 @@ class TestNetworkBasics(unittest.TestCase):
         ex = TDExperience()
         ex.s0 = s0
         ex.s1 = s0
-        ex.a_force = 1.0
-        ex.a_angle = 1.0
-        ex.pf = 0.5
-        ex.pa = 0.5
+
+        ex.action_force = out.force
+        ex.action_angle = out.angle
         ex.r1 = 0.1
         ex.step_in_ep = 0
         ex.G = 1.0
