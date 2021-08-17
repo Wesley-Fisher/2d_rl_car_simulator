@@ -117,7 +117,9 @@ class GameEngine:
                 exp = self.experience_preprocessor.preprocess_episode(exp)
                 self.network.add_experience(exp)
     
-    def training_fn(self):   
+    def training_fn(self):
+        if self.settings.memory.load_saved_network:
+            self.network.load_state()  
 
         while self.running:
             time.sleep(0.5)
