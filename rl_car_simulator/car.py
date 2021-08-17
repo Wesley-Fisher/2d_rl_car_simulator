@@ -1,4 +1,5 @@
 
+from rl_car_simulator.settings import CONSTANTS
 import numpy as np
 
 from .utilities import Utility
@@ -12,18 +13,52 @@ class CarState:
         self.h = 0.0
         self.vh = 0.0
 
+class ControlAction:
+    def __init__(self):
+        pass
+    def get_applied_action_ext(self):
+        raise NotImplementedError
+    def get_action_int(self):
+        raise NotImplementedError
+    def get_prob(self):
+        raise NotImplementedError
+    def get_prob_of_int_action(self, action):
+        raise NotImplementedError
+    def get_random_elements(self):
+        raise NotImplementedError
+    def apply_noise(self, noise):
+        raise NotImplementedError
+
+class DirectControlAction:
+    def __init__(self, a, p):
+        self.action = a
+        self.prob = p
+    def get_applied_action_ext(self):
+        return self.action
+    def get_action_int(self):
+        return self.action
+    def get_prob(self):
+        return self.prob
+    def get_prob_of_int_action(self, action):
+        return Utility().normal_int_prob(action, self.action, CONSTANTS.sigma)
+    def get_random_elements(self):
+        return 1
+    def apply_noise(self, noise):
+        act_orig = self.action
+        self.action = act_orig + noise[0]
+        self.prob = Utility().normal_int_prob(act_orig, self.action, CONSTANTS.sigma)
+
+
 class CarControls:
-    def __init__(self, force, angle, p_force, p_angle):
+    def __init__(self, force, angle):
         self.force = force
         self.angle = angle
-        self.pf = p_force
-        self.pa = p_angle
 
 class Car:
     def __init__(self, settings, state):
         self.settings = settings
         self.state = state
-        self.controls = CarControls(0.0, 0.0, 1.0, 1.0)
+        self.controls = CarControls(DirectControlAction(0.0, 1.0), DirectControlAction(0.0, 1.0))
         self.controller = None
 
         self.util = Utility()
@@ -118,8 +153,6 @@ class CarStepExperience:
     
     def set_a0(self, a):
         self.a0 = a
-        self.pf = a.pf
-        self.pa = a.pa
     
     def set_r1(self, r):
         self.r1 = r

@@ -30,6 +30,7 @@ from .utilities import Utility
 from .network_model import MyModel, NetworkInputs, NetworkOutputs
 
 
+
 class EpochTrainingResults:
     def __init__(self):
         self.avg_c_step = 0.0

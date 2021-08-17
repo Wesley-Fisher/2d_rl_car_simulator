@@ -27,6 +27,7 @@ from tensorflow.keras import backend as K
 from tensorflow.python.keras.backend import set_session
 
 from .utilities import Utility
+from .car import ControlAction
 
 
 
@@ -43,11 +44,31 @@ class NetworkInputs:
         self.ratio_angle = None
         self.ret = None
 
+class NetworkAction(ControlAction):
+    def __init__(self):
+        self.action = 0.0
+        self.prob = 0.0
+    def get_random_elements(self):
+        return 1
+    def get_applied_action_ext(self):
+        return self.action
+    def get_action_int(self):
+        return self.action
+    def get_prob(self):
+        return self.prob
+    def apply_noise(self, noise):
+        act_orig = self.action
+        self.action = act_orig + noise[0]
+        self.prob = Utility().normal_int_prob(act_orig, self.action, CONSTANTS.sigma)
+    def get_prob_of_int_action(self, action):
+        return Utility().normal_int_prob(action, self.action, CONSTANTS.sigma)
+
+
 class NetworkOutputs:
     def __init__(self):
         self.value = 0.0
-        self.action_force = 0.0
-        self.action_steer = 0.0
+        self.force = NetworkAction()
+        self.action = NetworkAction()
 
 class MyModel:
     def __init__(self, settings,N, name):
@@ -294,8 +315,16 @@ class MyModel:
             out = self._model.predict(data)
             output = NetworkOutputs()
             output.value = out[2][0]
-            output.force = out[0][0]
-            output.angle = out[1][0]
+
+            force = NetworkAction()
+            force.action = out[0][0]
+            force.prob = self.util.normal_int_prob(out[0][0], out[0][0], self.settings.statistics.sigma)
+            output.force = force
+
+            angle = NetworkAction()
+            angle.action = out[1][0]
+            angle.prob = self.util.normal_int_prob(out[1][0], out[1][0], self.settings.statistics.sigma)
+            output.angle = angle
             return output
     
     def fit(self, data, verbose, batch_size=1):
@@ -351,22 +380,32 @@ class MyModel:
             inputs.advantage = [advantage]
 
             target_critic = ex.G #float(v0 + (ex.r1 + ex.G - v0))
-            inputs.target = [ex.a_force, ex.a_angle, target_critic]
+            inputs.target = [ex.action_force.get_action_int(),
+                             ex.action_angle.get_action_int(),
+                             target_critic]
 
             inputs.ret = [ex.G]
 
-            bf = clip(ex.pf, 1e-3, 1.0-1e-3)
-            pf = self.util.normal_int_prob(ex.a_force, float(pred0.force), SIG)
-            pf = clip(pf, 1e-3, 1.0-1e-3)
+            EPS = 1e-3
+
+            bf = clip(ex.action_force.get_prob(), EPS, 1.0-EPS)
+            pf = ex.action_force.get_prob_of_int_action(pred0.force.get_action_int())
+            pf = clip(pf, EPS, 1.0-EPS)
             rat_f = clip(pf / bf, 0.1, 2.0)
             inputs.ratio_force = [rat_f]
 
-            ba = clip(ex.pa, 1e-3, 1.0-1e-3)
-            pa = self.util.normal_int_prob(ex.a_angle, float(pred0.angle), SIG)
-            pa = clip(pa, 1e-3, 1.0-1e-3)
+            ba = clip(ex.action_angle.get_prob(), EPS, 1.0-EPS)
+            pa = ex.action_angle.get_prob_of_int_action(pred0.angle.get_action_int())
+            pa = clip(pf, EPS, 1.0-EPS)
             rat_a = clip(pa / ba, 0.1, 2.0)
             inputs.ratio_angle = [rat_a]
 
             data.append(inputs)
 
         return data, original
+
+    def get_force_action_prob(self, action):
+        return action.value, action.prob
+
+    def get_angle_action_prob(self, action):
+        return action.value, action.prob

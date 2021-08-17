@@ -45,7 +45,7 @@ class TestNetworkBasics(unittest.TestCase):
             dat = net.make_dummy_data()
             net.state = state
             output = net.model(s0)
-            dat.target = [output.force, output.angle, output.value + 1.0]
+            dat.target = [output.force.action, output.angle.action, output.value + 1.0]
             dat.advantage = [dat.target[2]]
             data.append(dat)
 
@@ -61,7 +61,7 @@ class TestNetworkBasics(unittest.TestCase):
             dat = net.make_dummy_data()
             net.state = state
             output = net.model(s0)
-            dat.target = [output.force, output.angle, output.value - 1.0]
+            dat.target = [output.force.action, output.angle.action, output.value - 1.0]
             dat.advantage = [dat.target[2]]
             data.append(dat)
 
@@ -81,8 +81,8 @@ class TestNetworkBasics(unittest.TestCase):
         s0 = physics.get_car_state(car)
         net = Network(settings, len(s0))
 
-        af0 = net.model(s0).force
-        aa0 = net.model(s0).angle
+        af0 = net.model(s0).force.action
+        aa0 = net.model(s0).angle.action
         states = [s0]
 
         # Increase likelihoods
@@ -97,13 +97,13 @@ class TestNetworkBasics(unittest.TestCase):
             #  - 'actual' angle used was lower than current
             #  - advantage high
             # Should see actions be more probable
-            dat.target = [output.force + 0.5, output.angle - 0.5, output.value]
-            dat.advantage = [output.value + 5.0]
+            dat.target = [output.force.action + 0.5, output.angle.action - 0.5, output.value]
+            dat.advantage = [5.0]
             data.append(dat)
 
         net.fit_model(data)
-        af1 = net.model(s0).force
-        aa1 = net.model(s0).angle
+        af1 = net.model(s0).force.action
+        aa1 = net.model(s0).angle.action
 
         self.assertGreater(float(af1), float(af0))
         self.assertLess(float(aa1), float(aa0))
@@ -120,8 +120,8 @@ class TestNetworkBasics(unittest.TestCase):
         s0 = physics.get_car_state(car)
         net = Network(settings, len(s0))
 
-        af0 = net.model(s0).force
-        aa0 = net.model(s0).angle
+        af0 = net.model(s0).force.action
+        aa0 = net.model(s0).angle.action
         states = [s0]
 
         # Increase likelihoods
@@ -136,13 +136,13 @@ class TestNetworkBasics(unittest.TestCase):
             #  - 'actual' angle used was lower than current
             #  - advantage low
             # Should see actions be less probable
-            dat.target = [output.force + 0.5, output.angle - 0.5, output.value]
-            dat.advantage = [output.value - 5.0]
+            dat.target = [output.force.action + 0.5, output.angle.action - 0.5, output.value]
+            dat.advantage = [-5.0]
             data.append(dat)
 
         net.fit_model(data)
-        af1 = net.model(s0).force
-        aa1 = net.model(s0).angle
+        af1 = net.model(s0).force.action
+        aa1 = net.model(s0).angle.action
 
         self.assertLess(float(af1), float(af0))
         self.assertGreater(float(aa1), float(aa0))
@@ -168,7 +168,7 @@ class TestNetworkBasics(unittest.TestCase):
                 dat = net.make_dummy_data()
                 dat.state = state
                 output = net.model(s0)
-                dat.target = [output.force, output.angle, output.value + 1.0]
+                dat.target = [output.force.action, output.angle.action, output.value + 1.0]
                 dat.advantage = [output.value]
                 data.append(dat)
 

@@ -407,8 +407,8 @@ class TestNetworkIntegration(unittest.TestCase):
         #    print(ex.G)
 
 
-        diff_G0_last = abs(float(net.model(exG0.s0).angle - AG))
-        diff_C0_last = abs(float(net.model(exC0.s0).angle - AC))
+        diff_G0_last = abs(float(net.model(exG0.s0).angle.action - AG))
+        diff_C0_last = abs(float(net.model(exC0.s0).angle.action - AC))
         #print("*****")
 
         # Look for overall improvement in 5 iterations
@@ -423,8 +423,8 @@ class TestNetworkIntegration(unittest.TestCase):
 
             # Can't be as sure with training with both sets
             # So only test final results
-            aG = float(net.model(exG0.s0).angle)
-            aC = float(net.model(exC0.s0).angle)
+            aG = float(net.model(exG0.s0).angle.action)
+            aC = float(net.model(exC0.s0).angle.action)
             vG0 = float(net.model(exG0.s0).value)
             vC0 = float(net.model(exC0.s0).value)
             vG1 = float(net.model(exG0.s1).value)

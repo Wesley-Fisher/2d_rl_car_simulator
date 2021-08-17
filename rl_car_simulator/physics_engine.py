@@ -69,9 +69,11 @@ class PhysicsEngine:
         #ang = ang - car.state.h
         #v = v * math.cos(ang)
 
-        v = v + (car.controls.force - v*self.settings.car_properties.fric) *  dt / self.settings.car_properties.mass
+        force = car.controls.force.get_applied_action_ext()
+        v = v + (force - v*self.settings.car_properties.fric) *  dt / self.settings.car_properties.mass
 
-        car.state.dh = float(v * car.controls.angle)
+        angle = car.controls.angle.get_applied_action_ext()
+        car.state.dh = float(v * angle)
         car.state.h = float(car.state.h + car.state.dh * dt) 
 
         car.state.v = float(v)
