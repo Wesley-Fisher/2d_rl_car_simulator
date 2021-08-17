@@ -253,16 +253,17 @@ class MyModel:
                 let: u=predicted action (model output during training)
 
                 Use log probabilities in loss function. We will decrease the loss
-                As:
-                - in_exponent increases
-                - prob [= width * gauss_fac * exp((-)in_exponent)] decreases
-                - log(prob) [= log(width) + (-)in_exponent|]   decreases
-                - log(prob) [~ (-)in_exponent|] decreases
-                - log(prob) [~ (+) in_exponent] increases
-                - (-)log(prob) decreases
+                We want the taken action (if advantage is positive) to be more likely
+                - diff ((x - u)/sig) should get smaller
+                - prob [= width * gauss_fac * exp((-)diff*diff)] increases
+                - log(prob) [= log(width) + (-)diff*diff|]   increases
+                - log(prob) [~ (-)diff*diff|] increases
+                - log(prob) [~ (+)diff*diff] decreases
+                - log(prob) decreases
+                - log(prob) * (advantage > 0) decreases
                 - we get closer to where we want to go
-                Then:
-                - multiple by advantage to control direction we want to go
+                Advantage:
+                - multiply by advantage to control direction we want to go
                 - positive advantage: we do want to increase probability, etc
                 '''
 
