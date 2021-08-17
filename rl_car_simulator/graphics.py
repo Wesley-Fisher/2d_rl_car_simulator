@@ -23,9 +23,10 @@ FEEDBACKEXPLORATION = (0,155,0)
 RANDOM = (100,100,155)
 
 class Graphics:
-    def __init__(self, settings, world):
+    def __init__(self, settings, world, reporting):
         self.settings = settings
         self.world = world
+        self.reporting
 
         w = int(self.settings.world.size_x * self.settings.graphics.pixels_per_m)
         h = int(self.settings.world.size_y * self.settings.graphics.pixels_per_m)

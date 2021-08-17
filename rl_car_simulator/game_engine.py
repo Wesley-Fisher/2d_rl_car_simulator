@@ -29,7 +29,7 @@ class GameEngine:
         self.experience_preprocessor = ExperiencePreprocessor(self.settings, self.reporting)
         self.experience = ExperienceEngine(self.settings, self.world, self.experience_preprocessor)
 
-        self.graphics = Graphics(self.settings, self.world)
+        self.graphics = Graphics(self.settings, self.world, self.reporting)
         self.physics = PhysicsEngine(self.settings, self.world, self.experience)
         
         
