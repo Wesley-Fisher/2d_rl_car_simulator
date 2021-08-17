@@ -49,6 +49,23 @@ class NetworkAction(ControlAction):
         self.action = 0.0
         self.prob = 0.0
     def get_random_elements(self):
+        raise NotImplementedError
+    def get_applied_action_ext(self):
+        raise NotImplementedError
+    def get_action_int(self):
+        raise NotImplementedError
+    def get_prob(self):
+        raise NotImplementedError
+    def apply_noise(self, noise):
+        raise NotImplementedError
+    def get_prob_of_int_action(self, action):
+        raise NotImplementedError
+
+class ReLUNetworkAction(NetworkAction):
+    def __init__(self):
+        self.action = 0.0
+        self.prob = 0.0
+    def get_random_elements(self):
         return 1
     def get_applied_action_ext(self):
         return self.action
@@ -318,12 +335,12 @@ class MyModel:
             output = NetworkOutputs()
             output.value = out[2][0]
 
-            force = NetworkAction()
+            force = ReLUNetworkAction()
             force.action = out[0][0]
             force.prob = self.util.normal_int_prob(out[0][0], out[0][0], self.settings.statistics.sigma)
             output.force = force
 
-            angle = NetworkAction()
+            angle = ReLUNetworkAction()
             angle.action = out[1][0]
             angle.prob = self.util.normal_int_prob(out[1][0], out[1][0], self.settings.statistics.sigma)
             output.angle = angle
