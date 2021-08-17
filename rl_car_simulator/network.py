@@ -164,7 +164,7 @@ class Network:
 
         self.fit_model(data)
 
-        new = [self.model(dat) for dat in data]
+        new = [self.model(dat.state) for dat in data]
 
         for orig, dat, newP in zip(original[0:5], data[0:5], new[0:5]):
             ret = dat.ret
