@@ -120,7 +120,7 @@ class FeedbackController(Controller):
         if abs(d_head) > 2 * dist:
             force = -0.5
             angle = 0.0
-            return CarControls(force, angle, 1.0, 1.0)
+            return CarControls(DirectControlAction(force, 1.0), DirectControlAction(angle, 0.1))
 
         force = self.settings.feedback_car.force
         angle = self.settings.feedback_car.k * d_head
