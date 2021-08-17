@@ -297,6 +297,17 @@ class Debug:
         config["profile_network"] = self.profile_network
         return config
 
+class Network:
+    def __init__(self, config):
+        self.W = float(config.get("W", 0.5))
+        self.D = int(config.get("D", 2))
+
+    def write(self):
+        config = {}
+        config["W"] = self.W
+        config["D"] = self.D
+        return config
+
 class Files:
     def __init__(self, root_dir):
         self.root_dir = root_dir
@@ -334,6 +345,7 @@ class Settings:
         self.memory = Memory(config.get("memory", {}))
         self.reporting = Reporting(config.get("reporting", {}))
         self.debug = Debug(config.get("debug", {}))
+        self.network = Network(config.get("network", {}))
 
         if save_default:
             self.write()
@@ -359,6 +371,7 @@ class Settings:
         config["memory"] = self.memory.write()
         config["reporting"] = self.reporting.write()
         config["debug"] = self.debug.write()
+        config["network"] = self.network.write()
 
         with open(self.settings_file, 'w') as handle:
             yaml.dump(config, handle)
