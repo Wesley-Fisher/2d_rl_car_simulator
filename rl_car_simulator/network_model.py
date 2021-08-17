@@ -257,8 +257,8 @@ class MyModel:
                 - diff ((x - u)/sig) should get smaller
                 - prob [= width * gauss_fac * exp((-)diff*diff)] increases
                 - log(prob) [= log(width) + (-)diff*diff|]   increases
-                - log(prob) [~ (-)in_exponent|] increases
-                - log(prob) [~ (+) in_exponent] decreases
+                - log(prob) [~ (-)diff*diff|] increases
+                - log(prob) [~ (+)diff*diff] decreases
                 - log(prob) decreases
                 - log(prob) * (advantage > 0) decreases
                 - we get closer to where we want to go

@@ -18,3 +18,11 @@ class Reporting:
         for car in self.car_performance.keys():
             p = statistics.mean(self.car_performance[car])
             print("%s Performance:\t%f" % (car,p))
+
+    def get_report(self):
+        names = list(self.car_performance.keys())
+        if len(names) == 0:
+            return [],[]
+        names.sort()
+        values = [statistics.mean(self.car_performance[car]) for car in names]
+        return names, values
