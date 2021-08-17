@@ -318,12 +318,12 @@ class MyModel:
 
             force = NetworkAction()
             force.action = out[0][0]
-            force.action = self.util.normal_int_prob(out[0][0], out[0][0], self.settings.statistics.sigma)
+            force.prob = self.util.normal_int_prob(out[0][0], out[0][0], self.settings.statistics.sigma)
             output.force = force
 
             angle = NetworkAction()
-            angle.action = out[0][0]
-            angle.action = self.util.normal_int_prob(out[1][0], out[1][0], self.settings.statistics.sigma)
+            angle.action = out[1][0]
+            angle.prob = self.util.normal_int_prob(out[1][0], out[1][0], self.settings.statistics.sigma)
             output.angle = angle
             return output
     

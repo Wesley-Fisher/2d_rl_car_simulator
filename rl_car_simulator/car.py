@@ -41,6 +41,8 @@ class DirectControlAction:
         return self.prob
     def get_prob_of_int_action(self, action):
         return Utility().normal_int_prob(action, self.action, CONSTANTS.sigma)
+    def get_random_elements(self):
+        return 1
     def apply_noise(self, noise):
         act_orig = self.action
         self.action = act_orig + noise[0]
