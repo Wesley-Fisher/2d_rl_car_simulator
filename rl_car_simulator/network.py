@@ -1,3 +1,4 @@
+from copy import Error
 import math
 
 from numpy.core.fromnumeric import clip
@@ -24,7 +25,7 @@ from tensorflow.keras import initializers
 from tensorflow.keras.optimizers import Adam, SGD
 from tensorflow.python.ops.gen_math_ops import is_nan 
 from tensorflow.keras import backend as K
-from tensorflow.python.keras.backend import set_session
+from tensorflow.python.keras.backend import count_params, set_session
 
 from .utilities import Utility
 from .network_model import MyModel, NetworkInputs, NetworkOutputs
@@ -76,8 +77,8 @@ class Network:
         self.new_training_experiences = []
         self.training_experience = []
 
-        if self.settings.memory.load_saved_network:
-            self.load_state()
+        #if self.settings.memory.load_saved_network:
+        #    self.load_state()
 
         self.freeze()
         
@@ -237,20 +238,47 @@ class Network:
 
 
     def load_model(self):
+        self.freezing = True # Set to False if returning
         memory_dir = self.settings._files.root_dir + "/memory"
         
+        good = False
         if self.settings.memory.load_saved_network:
+            orig_net = MyModel(self.settings, self.N, 'temp')
+            
             try:
                 network_file = memory_dir + "/model.h5"
                 self.graph = tf.compat.v1.Graph()
                 self._model.load_model(network_file)
-                self.freeze()
+                self.frozen_model.load_model(network_file)
                 print("Loaded Network")
-                return True
+                good =  True
             except OSError as e:
                 print("Could not load network from file %s: %s" % (network_file, str(e)))
-                return False
-        return False
+                good =  False
+            except ValueError as e:
+                print("Network shape likely mismatched: " + str(e))
+                good =  False
+            except Error as e:
+                print("Unexpected error: %s" + str(e))
+                self.freezing = False
+                raise e
+
+            new_count = np.sum([K.count_params(p) for p in set(self._model._model.trainable_weights)])
+            old_count = np.sum([K.count_params(p) for p in set(orig_net._model.trainable_weights)])
+            if new_count != old_count:
+                print("Network shaped changed from loading")
+                good = False
+
+            if not good:
+                # Failed to load. Re-Create
+                self._model = MyModel(self.settings, self.N, 'model')
+                self.frozen_model = MyModel(self.settings, self.N, 'frozen')
+                self.freeze()
+            else:
+                self.freeze()
+
+        self.freezing = False
+        return good
 
     def load_experience(self):
         memory_dir = self.settings._files.root_dir + "/memory"

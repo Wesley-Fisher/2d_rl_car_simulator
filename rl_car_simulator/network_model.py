@@ -77,6 +77,9 @@ class MyModel:
         self.name = name
         self.util = Utility()
 
+        self.W = settings.network.W
+        self.D = settings.network.D
+
         self.graph = tf.Graph()
         self.session = tf.compat.v1.Session(graph=self.graph)
 
@@ -175,8 +178,6 @@ class MyModel:
 
     def make_model(self):
         # MODEL NETWORK
-        self.W = 0.5
-        self.D = 2
         ik = initializers.RandomNormal(stddev=0.1, seed=1)
         ib = initializers.RandomNormal(stddev=0.1, seed=2)
         WN = int(self.W*self.N + 1)
@@ -299,7 +300,7 @@ class MyModel:
         self._model._make_predict_function()
 
     def prepare_data_internal(self, data):
-        states = np.array([d.state for d in data])
+        states = np.array([np.array(d.state) for d in data])
         forces = np.array([d.target[0] for d in data])
         angles = np.array([d.target[1] for d in data])
         values = np.array([d.target[2] for d in data])
