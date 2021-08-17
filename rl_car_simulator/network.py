@@ -1,3 +1,4 @@
+from copy import Error
 import math
 
 from numpy.core.fromnumeric import clip
@@ -237,13 +238,12 @@ class Network:
 
 
     def load_model(self):
+        self.freezing = True # Set to False if returning
         memory_dir = self.settings._files.root_dir + "/memory"
         
         good = False
         if self.settings.memory.load_saved_network:
             orig_net = MyModel(self.settings, self.N, 'temp')
-            temp_model = self._model
-            temp_frozen_model = self.frozen_model
             
             try:
                 network_file = memory_dir + "/model.h5"
@@ -258,7 +258,11 @@ class Network:
             except ValueError as e:
                 print("Network shape likely mismatched: " + str(e))
                 good =  False
-            
+            except Error as e:
+                print("Unexpected error: %s" + str(e))
+                self.freezing = False
+                raise e
+
             new_count = np.sum([K.count_params(p) for p in set(self._model._model.trainable_weights)])
             old_count = np.sum([K.count_params(p) for p in set(orig_net._model.trainable_weights)])
             if new_count != old_count:
@@ -272,6 +276,8 @@ class Network:
                 self.freeze()
             else:
                 self.freeze()
+
+        self.freezing = False
         return good
 
     def load_experience(self):

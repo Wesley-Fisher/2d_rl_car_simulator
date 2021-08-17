@@ -300,7 +300,7 @@ class MyModel:
         self._model._make_predict_function()
 
     def prepare_data_internal(self, data):
-        states = np.array([d.state for d in data])
+        states = np.array([np.array(d.state) for d in data])
         forces = np.array([d.target[0] for d in data])
         angles = np.array([d.target[1] for d in data])
         values = np.array([d.target[2] for d in data])
