@@ -46,6 +46,8 @@ class TestNetworkBasics(unittest.TestCase):
 
         data, _ = net.build_epoch_targets([ex])
         net.fit_model(data)
+        net.training_experience = [ex]
+        net.train_epoch()
 
     def wrapped_remove(self, filename):
         try:
