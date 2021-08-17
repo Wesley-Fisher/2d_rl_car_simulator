@@ -47,6 +47,12 @@ class TestNetworkBasics(unittest.TestCase):
         data, _ = net.build_epoch_targets([ex])
         net.fit_model(data)
 
+    def wrapped_remove(self, filename):
+        try:
+            os.remove(filename)
+        except FileNotFoundError as e:
+            pass
+
     def test_model_get_interfaces(self):
         settings = Settings()
         world = WorldCreation(settings).get()
@@ -132,8 +138,8 @@ class TestNetworkBasics(unittest.TestCase):
         s0 = physics.get_car_state(car)
         net = Network(settings, len(s0))
 
-        os.remove(experience_file)
-        os.remove(model_file)
+        self.wrapped_remove(experience_file)
+        self.wrapped_remove(model_file)
         time.sleep(0.1)
 
         net.save_state()
@@ -170,8 +176,8 @@ class TestNetworkBasics(unittest.TestCase):
         net = Network(settings, len(s0))
 
         for i in range(0, 3):
-            os.remove(experience_file)
-            os.remove(model_file)
+            self.wrapped_remove(experience_file)
+            self.wrapped_remove(model_file)
             time.sleep(0.1)
 
             net.save_state()
@@ -204,15 +210,8 @@ class TestNetworkBasics(unittest.TestCase):
         net = Network(settings, len(s0))
 
         for i in range(0, 3):
-            try:
-                os.remove(experience_file)
-            except Error as e:
-                pass
-
-            try:
-                os.remove(model_file)
-            except Error as e:
-                pass
+            self.wrapped_remove(experience_file)
+            self.wrapped_remove(model_file)
             time.sleep(0.1)
 
             self.assertFalse(os.path.isfile(experience_file))
@@ -241,18 +240,21 @@ class TestNetworkBasics(unittest.TestCase):
         s0 = physics.get_car_state(car)
         net = Network(settings, len(s0))
 
-        os.remove(experience_file)
-        os.remove(model_file)
+        self.wrapped_remove(experience_file)
+        self.wrapped_remove(model_file)
         time.sleep(0.1)
 
         net.save_state()
         time.sleep(0.1)
 
+        settings.network.W = settings.network.W + 1.0
+        settings.network.D = settings.network.D + 1
+
         net = Network(settings, len(s0))
 
         self.assertTrue(os.path.isfile(experience_file))
         self.assertTrue(os.path.isfile(model_file))
-        self.assertTrue(net.load_state())
+        self.assertFalse(net.load_state())
         net.freeze()
 
         os.remove(experience_file)
