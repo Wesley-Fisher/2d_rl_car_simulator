@@ -26,10 +26,10 @@ class Graphics:
     def __init__(self, settings, world, reporting):
         self.settings = settings
         self.world = world
-        self.reporting
+        self.reporting = reporting
 
         w = int(self.settings.world.size_x * self.settings.graphics.pixels_per_m)
-        h = int(self.settings.world.size_y * self.settings.graphics.pixels_per_m)
+        h = int(self.settings.world.size_y * self.settings.graphics.pixels_per_m + 15 * len(world.all_cars) + 5)
         base_world_frame = np.full((h,w,3), (255,255,255), dtype=np.uint8)
         self.base_world_frame = self.fill_base_frame(base_world_frame)
 
@@ -96,6 +96,8 @@ class Graphics:
         for car in self.world.feedback_exploration_cars:
             self.draw_autonomous_car(base_frame, car, FEEDBACKEXPLORATION)
 
+        self.draw_performance(base_frame)
+
         return base_frame
 
     def draw_car(self, frame, car, color):
@@ -114,6 +116,16 @@ class Graphics:
         corners = np.concatenate(corners, axis=1).T
         corners = (corners * self.settings.graphics.pixels_per_m).astype(np.int32)
         cv2.fillPoly(frame, [corners], WINDSHIELD)
+
+    def draw_performance(self, base_frame):
+        names, perfs = self.reporting.get_report()
+        y0 = self.settings.world.size_y * self.settings.graphics.pixels_per_m
+        for i in range(0, len(names)):
+            y = int(y0 + 15 * (i+1))
+            info = names[i] + '   '
+            info = info + ('%.3f' %perfs[i])
+            pos = (5,y)
+            cv2.putText(base_frame, info, pos, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,0), 1, )
 
     def show_current_world(self):
         frame = self.create_current_frame(copy.copy(self.base_world_frame))
