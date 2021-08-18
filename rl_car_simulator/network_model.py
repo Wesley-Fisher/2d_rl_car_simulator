@@ -19,7 +19,7 @@ import tensorflow as tf
 tf.compat.v1.disable_eager_execution()
 from tensorflow import keras
 from tensorflow.keras.models import Sequential, Model
-from tensorflow.keras.layers import Dense, ReLU, Input
+from tensorflow.keras.layers import Dense, ReLU, Input, Softmax
 from tensorflow.keras import initializers
 from tensorflow.keras.optimizers import Adam, SGD
 from tensorflow.python.ops.gen_math_ops import is_nan 
@@ -79,6 +79,35 @@ class ReLUNetworkAction(NetworkAction):
         self.prob = Utility().normal_int_prob(act_orig, self.action, CONSTANTS.sigma)
     def get_prob_of_int_action(self, action):
         return Utility().normal_int_prob(action, self.action, CONSTANTS.sigma)
+
+class SoftmaxNetworkAction(NetworkAction):
+    def __init__(self, scale):
+        self.action = 0
+        self.prob = 0.0
+        self.scale = scale
+        self.map = {0: -1, 1: 0, 2: 1}
+    def get_random_elements(self):
+        return 3
+    def get_applied_action_ext(self):
+        i = self.action.index(max(self.action))
+        pol = self.map[i]
+        return pol * self.scale
+    def get_action_int(self):
+        return self.action
+    def get_prob(self):
+        i = self.action.index(max(self.action))
+        return self.action[i]
+    def apply_noise(self, noise):
+        tot = 0.0
+        for i in range(0, len(noise)):
+            self.action[i] = self.action[i] + noise[0]
+            tot = tot + self.action[i]*self.action[i]
+        tot = math.sqrt(tot)
+        for i in range(0, len(noise)):
+            self.action[i] = self.action[i] / tot
+    def get_prob_of_int_action(self, action):
+        i = self.action.index(max(self.action))
+        return self.action[i]
 
 
 class NetworkOutputs:
