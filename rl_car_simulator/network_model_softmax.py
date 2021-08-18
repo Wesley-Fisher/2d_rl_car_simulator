@@ -27,7 +27,7 @@ from tensorflow.keras import backend as K
 from tensorflow.python.keras.backend import set_session
 
 from .utilities import Utility
-from .car import ControlAction
+from .car import ControlAction, DiscreteControlAction
 from .network_model import MyModel, NetworkAction, NetworkInputs, NetworkOutputs
 
 
@@ -47,7 +47,7 @@ class SoftmaxNetworkInputs(NetworkInputs):
         self.ret = None
 
 
-class SoftmaxNetworkAction(NetworkAction):
+class SoftmaxNetworkAction(DiscreteControlAction):
     def __init__(self, scale):
         self.action = [0.23, 0.5, 0.25]
         self.scale = scale

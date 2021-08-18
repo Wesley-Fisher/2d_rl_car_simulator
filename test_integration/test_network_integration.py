@@ -17,6 +17,7 @@ from rl_car_simulator.controllers import Controller, HardCodedController, Contro
 from rl_car_simulator.experience_preprocessor import ExperiencePreprocessor
 from rl_car_simulator.experience_engine import ExperienceEngine
 
+# Values get overwritten by keyboard settings
 AG = -0.2
 AC = 0.3
 
@@ -28,7 +29,11 @@ class TestNetworkIntegration(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        global AG
+        global AC
         settings = Settings()
+        AG = -settings.keyboard.angle
+        AC = settings.keyboard.angle
         settings.walls.walls = settings.walls.outer_walls
         settings.learning.max_episode_length = 200
         settings.physics.physics_timestep = 0.2
@@ -87,7 +92,7 @@ class TestNetworkIntegration(unittest.TestCase):
             # Catch errors that lead to inf loop
             assert(i < 1000)
             i = i + 1
-        assert(i > 10)
+        assert(i > 5)
 
         experience_raw = preprocessor.experience_queue.pop(0)
         #print([ex.r1 for ex in experience_raw])
@@ -134,7 +139,7 @@ class TestNetworkIntegration(unittest.TestCase):
             # Catch errors that lead to inf loop
             assert(i < 1000)
             i = i + 1
-        assert(i > 10)
+        assert(i > 5)
 
         experience_raw = preprocessor.experience_queue.pop(0)
         #print([ex.r1 for ex in experience_raw])
@@ -179,7 +184,7 @@ class TestNetworkIntegration(unittest.TestCase):
             # Catch errors that lead to inf loop
             assert(i < 1000)
             i = i + 1
-        assert(i > 10)
+        assert(i > 5)
 
         experience_raw = preprocessor.experience_queue.pop(0)
         assert(len(experience_raw) > 2)
@@ -198,7 +203,7 @@ class TestNetworkIntegration(unittest.TestCase):
         cs.y = 10.0
         cs.h = 0.0
         car = Car(settings, cs)
-        car.goal = [25.0, 5.0]
+        car.goal = [22.0, 9.0]
         car.reached_goal = False
         world.keyboard_cars = []
         world.network_cars = []
@@ -224,7 +229,7 @@ class TestNetworkIntegration(unittest.TestCase):
             # Catch errors that lead to inf loop
             assert(i < 1000)
             i = i + 1
-        assert(i > 10)
+        assert(i > 3)
 
         experience_raw = preprocessor.experience_queue.pop(0)
         assert(len(experience_raw) > 2)
@@ -289,7 +294,7 @@ class TestNetworkIntegration(unittest.TestCase):
         vM_last = float(net.model(exM.s0).value)
         vF_last = float(net.model(exF.s0).value)
 
-        for i in range(0, 5):
+        for i in range(0, 3):
             data, original = net.build_epoch_targets(experience)
             net.fit_model(data * 1000)
             
@@ -405,10 +410,12 @@ class TestNetworkIntegration(unittest.TestCase):
 
         #for ex in expColl:
         #    print(ex.G)
+        
+        ind_G0_last = 0
+        ind_C0_last = 2
+        prob_G0_last = net.model(exG0.s0).angle.action[ind_G0_last]
+        prob_C0_last = net.model(exC0.s0).angle.action[ind_C0_last]
 
-
-        diff_G0_last = abs(float(net.model(exG0.s0).angle.action - AG))
-        diff_C0_last = abs(float(net.model(exC0.s0).angle.action - AC))
         #print("*****")
 
         # Look for overall improvement in 5 iterations
@@ -423,6 +430,7 @@ class TestNetworkIntegration(unittest.TestCase):
 
             # Can't be as sure with training with both sets
             # So only test final results
+            '''
             aG = float(net.model(exG0.s0).angle.action)
             aC = float(net.model(exC0.s0).angle.action)
             vG0 = float(net.model(exG0.s0).value)
@@ -434,13 +442,20 @@ class TestNetworkIntegration(unittest.TestCase):
             diff_G0 = abs(aG - AG)
             diff_C0 = abs(aC - AC)
             print("(G,C): pred(%f, %f)->v0(%f,%f)->v1(%f,%f)->adv(%f,%f)->act(%f,%f)" % (aG,aC,vG0,vC0,vG1,vC1,advG,advC,AG,AC))
+            '''
+            print("Goal(%s)[%d], Coll(%s)[%d]" % (str(net.model(exG0.s0).angle.action),
+                                                      ind_G0_last,
+                                                  str(net.model(exC0.s0).angle.action),
+                                                      ind_C0_last))
+            prob_G0 = net.model(exG0.s0).angle.action[ind_G0_last]
+            prob_C0 = net.model(exC0.s0).angle.action[ind_C0_last]
             
 
         
         # Final States should have clear learning
         # Unsure of proper check for goal state
-        self.assertLess(diff_G0, diff_G0_last)
-        self.assertGreater(diff_C0, diff_C0_last)
+        self.assertGreater(prob_G0, prob_G0_last)
+        self.assertLess(prob_C0, prob_C0_last)
 
 
 

@@ -1,3 +1,4 @@
+from rl_car_simulator.network_model import SoftmaxNetworkAction
 import numpy as np
 
 
@@ -51,6 +52,7 @@ class ExperiencePreprocessor:
 
             td = TDExperience()
             td.s0 = ex.s0
+
             td.action_force = ex.a0.force
             td.action_angle = ex.a0.angle
             td.r1 = ex.r1
