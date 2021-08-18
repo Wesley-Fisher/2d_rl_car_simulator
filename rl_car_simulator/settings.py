@@ -185,11 +185,11 @@ class Learning:
 
 class Rewards:
     def __init__(self, config):
-        self.get_closer_reward = float(config.get("get_closer_reward", 0.0))
-        self.turn_closer_reward = float(config.get("turn_closer_reward", 0.0))
+        self.get_closer_reward = float(config.get("get_closer_reward", 0.1))
+        self.turn_closer_reward = float(config.get("turn_closer_reward", 0.1))
         self.goal_reward = float(config.get("goal_reward", 5.0))
         self.collide_reward = float(config.get("collide_reward", -5.0))
-        self.timestep_reward = float(config.get("timestep_reward", -0.1))
+        self.timestep_reward = float(config.get("timestep_reward", -0.01))
 
     def write(self):
         config = {}
