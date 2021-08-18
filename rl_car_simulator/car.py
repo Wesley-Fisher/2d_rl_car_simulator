@@ -68,7 +68,7 @@ class DiscreteControlAction:
         return self.action[i]
     def apply_noise(self, noise):
         tot = 0.0
-        print(self.action)
+        #print(self.action)
         for i in range(0, len(noise)):
             self.action[i] = self.action[i] + noise[i]
             tot = tot + self.action[i]

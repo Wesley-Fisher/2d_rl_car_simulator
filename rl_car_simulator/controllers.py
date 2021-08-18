@@ -182,7 +182,14 @@ class FeedbackController(Controller):
             angle = dr - dl
             force = -2
 
-        return CarControls(DirectControlAction(force, 1.0), DirectControlAction(angle, 0.1))
+        #act_force = DirectControlAction(force, 1.0)
+        #act_angle = DirectControlAction(angle, 1.0)
+
+        act_force = DiscreteControlAction(self.settings.keyboard.force)
+        act_force.apply_from_continuous(force)
+        act_angle = DiscreteControlAction(self.settings.keyboard.angle)
+        act_angle.apply_from_continuous(angle)
+        return CarControls(act_force, act_angle)
 
 
 class ExplorationController(Controller):
