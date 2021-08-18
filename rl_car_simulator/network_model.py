@@ -118,36 +118,7 @@ class NetworkOutputs:
 
 class MyModel:
     def __init__(self, settings,N, name):
-        self.settings = settings
-        self.N = N
-        self.name = name
-        self.util = Utility()
-
-        self.W = settings.network.W
-        self.D = settings.network.D
-
-        self.graph = tf.Graph()
-        self.session = tf.compat.v1.Session(graph=self.graph)
-
-        self.state_input = None
-        self.applied_force_input = None
-        self.applied_angle_input = None
-        self.critic_target_input = None
-        self.advantage_input = None
-        self.ratio_f_input = None
-        self.ratio_a_input = None
-
-        self.force_out = None
-        self.angle_out = None
-        self.value_prediction = None
-
-        self._model = None
-        self.optimizer=None
-
-        with self.graph.as_default():
-            set_session(self.session)
-            self.make_model()
-            self.compile()
+        raise NotImplementedError
 
     def load_model(self, file):
         graph = tf.Graph()
@@ -184,6 +155,85 @@ class MyModel:
             return (self._model.get_weights())
 
     def handle_new_model(self, compile=True):
+        raise NotImplementedError
+
+    def save_model(self, filename):
+        with self.graph.as_default(), self.session.as_default():
+            set_session(self.session)
+            self._model.save(filename, save_format='h5')
+
+    def make_model(self):
+        raise NotImplementedError
+
+    def compile(self):
+        raise NotImplementedError
+
+    def prepare_data_internal(self, data):
+        raise NotImplementedError
+    
+    def predict(self, data):
+        raise NotImplementedError
+    
+    def fit(self, data, verbose, batch_size=1):
+        data = self.prepare_data_internal(data)
+        with self.graph.as_default(), self.session.as_default():
+            set_session(self.session)
+            self._model.fit(data, verbose=verbose, batch_size=batch_size)
+
+    def make_dummy_data(self):
+        NotImplementedError
+
+    def dummy_test(self):
+        data = self.make_dummy_data()
+        data = self.prepare_data_internal([data])
+        with self.graph.as_default(), self.session.as_default():
+            set_session(self.session)
+            self._model.predict(data)
+
+    def build_epoch_targets(self, exp):
+        raise NotImplementedError
+
+    def get_force_action_prob(self, action):
+        raise NotImplementedError
+
+    def get_angle_action_prob(self, action):
+        raise NotImplementedError
+
+
+class MyReLUModel(MyModel):
+    def __init__(self, settings,N, name):
+        self.settings = settings
+        self.N = N
+        self.name = name
+        self.util = Utility()
+
+        self.W = settings.network.W
+        self.D = settings.network.D
+
+        self.graph = tf.Graph()
+        self.session = tf.compat.v1.Session(graph=self.graph)
+
+        self.state_input = None
+        self.applied_force_input = None
+        self.applied_angle_input = None
+        self.critic_target_input = None
+        self.advantage_input = None
+        self.ratio_f_input = None
+        self.ratio_a_input = None
+
+        self.force_out = None
+        self.angle_out = None
+        self.value_prediction = None
+
+        self._model = None
+        self.optimizer=None
+
+        with self.graph.as_default():
+            set_session(self.session)
+            self.make_model()
+            self.compile()
+
+    def handle_new_model(self, compile=True):
         inputs = self._model.inputs
         outputs = self._model.outputs
 
@@ -217,10 +267,6 @@ class MyModel:
         if compile:
             self.compile()
 
-    def save_model(self, filename):
-        with self.graph.as_default(), self.session.as_default():
-            set_session(self.session)
-            self._model.save(filename, save_format='h5')
 
     def make_model(self):
         # MODEL NETWORK
@@ -375,11 +421,6 @@ class MyModel:
             output.angle = angle
             return output
     
-    def fit(self, data, verbose, batch_size=1):
-        data = self.prepare_data_internal(data)
-        with self.graph.as_default(), self.session.as_default():
-            set_session(self.session)
-            self._model.fit(data, verbose=verbose, batch_size=batch_size)
 
     def make_dummy_data(self):
         data = NetworkInputs()
@@ -391,12 +432,6 @@ class MyModel:
         data.ret = [0.0]
         return data
 
-    def dummy_test(self):
-        data = self.make_dummy_data()
-        data = self.prepare_data_internal([data])
-        with self.graph.as_default(), self.session.as_default():
-            set_session(self.session)
-            self._model.predict(data)
 
     def build_epoch_targets(self, exp):
         data = []
