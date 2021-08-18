@@ -39,7 +39,8 @@ GAUSS_FRAC = 1.0 / (SIG * math.sqrt(2*math.pi))
 class SoftmaxNetworkInputs(NetworkInputs):
     def __init__(self):
         self.state = None
-        self.target = None
+        self.force = None
+        self.angle = None
         self.advantage = None
         self.ratio_force = None
         self.ratio_angle = None
@@ -47,23 +48,36 @@ class SoftmaxNetworkInputs(NetworkInputs):
 
 
 class SoftmaxNetworkAction(NetworkAction):
-    def __init__(self):
-        self.action = 0.0
-        self.prob = 0.0
+    def __init__(self, scale):
+        self.action = [0.23, 0.5, 0.25]
+        self.scale = scale
+        self.ind_to_action = {0: -self.scale, 1: 0.0, 2: self.scale }
     def get_random_elements(self):
-        return 1
+        return 3
     def get_applied_action_ext(self):
-        return self.action
+        i = self.get_action_index()
+        return self.ind_to_action[i]
     def get_action_int(self):
-        return self.action
+        ret = [0.0, 0.0, 0.0]
+        i = self.get_action_index()
+        ret[i] = 1.0
+        return ret
     def get_prob(self):
-        return self.prob
+        i = self.get_action_index()
+        return self.action[i]
     def apply_noise(self, noise):
-        act_orig = self.action
-        self.action = act_orig + noise[0]
-        self.prob = Utility().normal_int_prob(act_orig, self.action, CONSTANTS.sigma)
+        tot = 0.0
+        print(self.action)
+        for i in range(0, len(noise)):
+            self.action[i] = self.action[i] + noise[i]
+            tot = tot + self.action[i]
+        for i in range(0, len(self.action)):
+            self.action[i] = self.action[i] / tot
     def get_prob_of_int_action(self, action):
-        return Utility().normal_int_prob(action, self.action, CONSTANTS.sigma)
+        i = action.index(max(action))
+        return self.action[i]
+    def get_action_index(self):
+        return self.action.index(max(self.action))
 
 
 class MySoftmaxModel(MyModel):
@@ -141,8 +155,8 @@ class MySoftmaxModel(MyModel):
         WN = int(self.W*self.N + 1)
 
         self.state_input = Input(shape=(self.N), name=self.name+'_state_in')
-        self.applied_force_input = Input(shape=(1), name=self.name+'_force_in')
-        self.applied_angle_input = Input(shape=(1), name=self.name+'_angle_in')
+        self.applied_force_input = Input(shape=(3), name=self.name+'_force_in')
+        self.applied_angle_input = Input(shape=(3), name=self.name+'_angle_in')
         self.critic_target_input = Input(shape=(1), name=self.name+'_critic_in')
         self.advantage_input = Input(shape=(1), name=self.name+'_advantage_in')
         self.ratio_f_input = Input(shape=(1), name=self.name+'_ratio_f_in')
@@ -165,11 +179,11 @@ class MySoftmaxModel(MyModel):
 
         out1 = Dense(3, kernel_initializer=ik, bias_initializer=ib, name='dense_output')(layer)
 
-        force_out = Dense(1, kernel_initializer=ik, bias_initializer=ib, name='force_dense_out')(out1)
-        self.force_out = ReLU(negative_slope=1.0, name='force_output')(force_out)
+        force_out = Dense(3, kernel_initializer=ik, bias_initializer=ib, name='force_dense_out')(out1)
+        self.force_out = Softmax(name='force_output')(force_out)
 
-        angle_out = Dense(1, kernel_initializer=ik, bias_initializer=ib, name='angle_dense_out')(out1)
-        self.angle_out = ReLU(negative_slope=1.0, name='angle_output')(angle_out)
+        angle_out = Dense(3, kernel_initializer=ik, bias_initializer=ib, name='angle_dense_out')(out1)
+        self.angle_out = Softmax(name='angle_output')(angle_out)
 
         value_prediction = Dense(1, kernel_initializer=ik, bias_initializer=ib, name='value_dense_out')(out1)
         self.value_prediction = ReLU(negative_slope=1.0, name='value_output')(value_prediction)
@@ -191,12 +205,6 @@ class MySoftmaxModel(MyModel):
             # Pred: predicted target: used force, use angle, episode return
             # Advantage: advantage: ex.r1 + gamma * pred(v1) - pred(v0)
             # Ratios: importance sampling ratios
-            '''
-            print("in-loss printouts")
-            print(output)
-            print(pred)
-            print(advantage)
-            '''
 
             # Want critic to predict episode return
             critic_loss = K.pow(return_value - value_out, 2)
@@ -205,37 +213,29 @@ class MySoftmaxModel(MyModel):
                 # Heavy Influence: https://www.tensorflow.org/tutorials/reinforcement_learning/actor_critic
                 '''
                 Goal: change probability of action taken in direction of sign(advantage)
-                prob = integration_width * prob_density
-                density = normal_function = gauss_fac * exp(-0.5*square((x-u)/sig))
-                let: x=action taken (model output to controller)
-                let: u=predicted action (model output during training)
+                act: actions actually take (list of 0's and 1's)
+                pred: prediction of actions to take (list of floats, sum to 1.0)
 
                 Use log probabilities in loss function. We will decrease the loss
                 We want the taken action (if advantage is positive) to be more likely
-                - diff ((x - u)/sig) should get smaller
-                - prob [= width * gauss_fac * exp((-)diff*diff)] increases
-                - log(prob) [= log(width) + (-)diff*diff|]   increases
-                - log(prob) [~ (-)diff*diff|] increases
-                - log(prob) [~ (+)diff*diff] decreases
-                - log(prob) decreases
-                - log(prob) * (advantage > 0) decreases
+                - log(prob) increases
+                - (-)log(prob) decreases
+                - act * (-)log_prob selects only the log_prob of the action taken
+                - act * (-)log_prob decreases
+                - act * (-)log_prob * (advantage > 0) decreases
                 - we get closer to where we want to go
                 Advantage:
                 - multiply by advantage to control direction we want to go
                 - positive advantage: we do want to increase probability, etc
                 '''
 
+                log_prob = -K.log(pred)
+                selected_act = act * log_prob
+                adjustments = selected_act * advantage
+                return K.sum(adjustments)
 
-                delta = act - pred
-                expo = 0.5 * K.square(delta/SIG) + 1e-5
-                # Expo has a max of ~0
-                # Expo has no minimum value
-                log_prob = expo # + K.log(GAUSS_FRAC * WIDTH) # These are constant
-                log_prob = K.clip(log_prob, 1e-5, 100.0)
-                loss = log_prob * advantage
-                return loss * rat
-            force_loss = action_loss(force_out, force_used, ratio_f)
-            angle_loss = action_loss(angle_out, angle_used, ratio_a)
+            force_loss = action_loss(force_used, force_out, ratio_f)
+            angle_loss = action_loss(angle_used, angle_out, ratio_a)
 
             # Not sure why angles tend to go off in one direction yet
             # try to limit for now
@@ -260,9 +260,9 @@ class MySoftmaxModel(MyModel):
 
     def prepare_data_internal(self, data):
         states = np.array([np.array(d.state) for d in data])
-        forces = np.array([d.target[0] for d in data])
-        angles = np.array([d.target[1] for d in data])
-        values = np.array([d.target[2] for d in data])
+        forces = np.array([np.array(d.force) for d in data])
+        angles = np.array([np.array(d.angle)for d in data])
+        values = np.array([d.ret for d in data])
         advantages = np.array([d.advantage[0] for d in data])
         ratios_force = np.array([d.ratio_force for d in data])
         ratios_angle = np.array([d.ratio_angle for d in data])
@@ -276,14 +276,12 @@ class MySoftmaxModel(MyModel):
             output = NetworkOutputs()
             output.value = out[2][0]
 
-            force = SoftmaxNetworkAction()
-            force.action = out[0][0]
-            force.prob = self.util.normal_int_prob(out[0][0], out[0][0], self.settings.statistics.sigma)
+            force = SoftmaxNetworkAction(self.settings.keyboard.force)
+            force.action = out[0][0].tolist()
             output.force = force
 
-            angle = SoftmaxNetworkAction()
-            angle.action = out[1][0]
-            angle.prob = self.util.normal_int_prob(out[1][0], out[1][0], self.settings.statistics.sigma)
+            angle = SoftmaxNetworkAction(self.settings.keyboard.angle)
+            angle.action = out[1][0].tolist()
             output.angle = angle
             return output
     
@@ -291,7 +289,8 @@ class MySoftmaxModel(MyModel):
     def make_dummy_data(self):
         data = SoftmaxNetworkInputs()
         data.state = [0.0]*self.N
-        data.target = [0.0,0.0,0.0]
+        data.force = [0.0, 0.0, 0.0]
+        data.angle = [0.0, 0.0, 0.0]
         data.advantage = [0.0]
         data.ratio_force = [1.0]
         data.ratio_angle = [1.0]
@@ -329,9 +328,8 @@ class MySoftmaxModel(MyModel):
             inputs.advantage = [advantage]
 
             target_critic = ex.G #float(v0 + (ex.r1 + ex.G - v0))
-            inputs.target = [ex.action_force.get_action_int(),
-                             ex.action_angle.get_action_int(),
-                             target_critic]
+            inputs.force = ex.action_force.get_action_int()
+            inputs.angle = ex.action_angle.get_action_int()
 
             inputs.ret = [ex.G]
 

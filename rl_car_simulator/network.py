@@ -174,27 +174,25 @@ class Network:
 
         for orig, dat, newP in zip(original[0:5], data[0:5], new[0:5]):
             ret = dat.ret
-            target = dat.target
             adv = dat.advantage
-            sOrig = "orig(%f, %f,%f)" % (orig.force.action, orig.angle.action, orig.value)
+            sOrig = "orig(%s, %s,%f)" % (str(orig.force.action), str(orig.angle.action), orig.value)
             sRet = "ret(%f)" % (ret[0])
-            sTarget = "target(%f,%f,%f)" % (target[0], target[1], target[2])
             sAdv = "adv(%f)" % (adv[0])
-            sNew = "new(%f,%f,%f)" % (newP.force.action, newP.angle.action, newP.value)
-            print("%s->%s->%s->%s->%s" % (sOrig, sRet, sTarget, sAdv, sNew))
+            sNew = "new(%s,%s,%f)" % (str(newP.force.action), str(newP.angle.action), newP.value)
+            print("%s->%s->%s->%s" % (sOrig, sRet, sAdv, sNew))
 
         sample_results= []
         for orig, newP in zip(original, new):
             results = SampleTrainingResults()
             results.c_step = float(newP.value - orig.value)
-            results.af_step = float(newP.force.action - orig.force.action)
-            results.aa_step = float(newP.angle.action - orig.angle.action)
+            results.af_step = float(newP.force.get_prob() - orig.force.get_prob())
+            results.aa_step = float(newP.angle.get_prob() - orig.angle.get_prob())
             sample_results.append(results)
 
             bad = False
             bad = bad or  math.isnan(float(newP.value))
-            bad = bad or  math.isnan(float(newP.force.action))
-            bad = bad or  math.isnan(float(newP.angle.action))
+            bad = bad or any( [math.isnan(float(f)) for f in newP.force.action])
+            bad = bad or any( [math.isnan(float(a)) for a in newP.angle.action])
 
             if bad:
                 exit()
