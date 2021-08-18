@@ -30,6 +30,7 @@ from tensorflow.python.keras.backend import count_params, set_session
 from .utilities import Utility
 from .network_model import NetworkInputs, NetworkOutputs
 from .network_model_relu import MyReLUModel
+from .network_model_softmax import MySoftmaxModel
 
 
 
@@ -55,6 +56,10 @@ SIG = CONSTANTS.sigma
 WIDTH = Utility().normal_int_width(SIG)
 GAUSS_FRAC = 1.0 / (SIG * math.sqrt(2*math.pi))
 
+def get_model(settings, N, name):
+    #return MyReLUModel(settings, N, name)
+    return MySoftmaxModel(settings, N, name)
+
 class Network:
     def __init__(self, settings, N):
         self.settings = settings
@@ -63,8 +68,8 @@ class Network:
         self.freezing = False
 
         # MODEL
-        self._model = MyReLUModel(self.settings, N, 'model')
-        self.frozen_model = MyReLUModel(self.settings, N, 'frozen')
+        self._model = get_model(self.settings, N, 'model')
+        self.frozen_model = get_model(self.settings, N, 'frozen')
 
         '''
         print("network in layers")
@@ -249,7 +254,7 @@ class Network:
         
         good = False
         if self.settings.memory.load_saved_network:
-            orig_net = MyReLUModel(self.settings, self.N, 'temp')
+            orig_net = get_model(self.settings, self.N, 'temp')
             
             try:
                 network_file = memory_dir + "/model.h5"
@@ -277,8 +282,8 @@ class Network:
 
             if not good:
                 # Failed to load. Re-Create
-                self._model = MyReLUModel(self.settings, self.N, 'model')
-                self.frozen_model = MyReLUModel(self.settings, self.N, 'frozen')
+                self._model = get_model(self.settings, self.N, 'model')
+                self.frozen_model = get_model(self.settings, self.N, 'frozen')
                 self.freeze()
             else:
                 self.freeze()
