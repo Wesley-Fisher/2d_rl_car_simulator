@@ -228,14 +228,14 @@ class MySoftmaxModel(MyModel):
                 - positive advantage: we do want to increase probability, etc
                 '''
 
-                log_prob = -K.log(pred)
+                log_prob = -K.log(pred + 1e-6)
                 selected_act = act * log_prob
                 adjustments = selected_act * advantage
                 return K.sum(adjustments)
 
             def entropy_loss(pred):
                 # Increases for every probability near 0.0 or 1.0
-                return K.sum(pred * K.log(pred)) * 1e-5
+                return K.sum(pred * K.log(pred + 1e-6)) * 1e-3
 
             force_loss = action_loss(force_used, force_out, ratio_f) + entropy_loss(force_out)
             angle_loss = action_loss(angle_used, angle_out, ratio_a) + entropy_loss(angle_out)
@@ -316,18 +316,21 @@ class MySoftmaxModel(MyModel):
             pred_data.state = s0
             pred0 = self.predict([pred_data])
             original.append(pred0)
+            v0 = pred0.value
 
-            '''
-            v1 = float(pred1[2])
+            pred1_data = self.make_dummy_data()
+            pred1_data.state = ex.s1
+            pred1 = self.predict([pred1_data])
+            v1 = float(pred1.value)
             if ex.next_terminal:
                 advantage = float(ex.r1 - v0)
             else:
                 advantage = float(ex.r1 + gamma * v1 - v0)
-            '''
+            
             # https://livebook.manning.com/book/deep-learning-and-the-game-of-go/chapter-12/46
             # MC Advantage
-            v0 = pred0.value
-            advantage = float(ex.G - v0)
+            
+            #advantage = float(ex.G - v0)
             inputs.advantage = [advantage]
 
             target_critic = ex.G #float(v0 + (ex.r1 + ex.G - v0))

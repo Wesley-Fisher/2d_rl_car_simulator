@@ -175,10 +175,15 @@ class Network:
         for orig, dat, newP in zip(original[0:5], data[0:5], new[0:5]):
             ret = dat.ret
             adv = dat.advantage
-            sOrig = "orig(%s, %s,%f)" % (str(orig.force.action), str(orig.angle.action), orig.value)
+            def output_to_string(output):
+                force = [float("%.3f" % a) for a in output.force.action]
+                angle = [float("%.3f" % a) for a in output.angle.action]
+                value = float("%.4f" % output.value)
+                return "%s, %s, %s" % (str(force), str(angle), str(value))
+            sOrig = "orig(%s)" % output_to_string(orig)
             sRet = "ret(%f)" % (ret[0])
             sAdv = "adv(%f)" % (adv[0])
-            sNew = "new(%s,%s,%f)" % (str(newP.force.action), str(newP.angle.action), newP.value)
+            sNew = "new(%s)" % output_to_string(newP)
             print("%s->%s->%s->%s" % (sOrig, sRet, sAdv, sNew))
 
         sample_results= []
