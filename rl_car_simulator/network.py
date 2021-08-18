@@ -28,7 +28,8 @@ from tensorflow.keras import backend as K
 from tensorflow.python.keras.backend import count_params, set_session
 
 from .utilities import Utility
-from .network_model import MyModel, NetworkInputs, NetworkOutputs
+from .network_model import NetworkInputs, NetworkOutputs
+from .network_model_relu import MyReLUModel
 
 
 
@@ -62,8 +63,8 @@ class Network:
         self.freezing = False
 
         # MODEL
-        self._model = MyModel(self.settings, N, 'model')
-        self.frozen_model = MyModel(self.settings, N, 'frozen')
+        self._model = MyReLUModel(self.settings, N, 'model')
+        self.frozen_model = MyReLUModel(self.settings, N, 'frozen')
 
         '''
         print("network in layers")
@@ -248,7 +249,7 @@ class Network:
         
         good = False
         if self.settings.memory.load_saved_network:
-            orig_net = MyModel(self.settings, self.N, 'temp')
+            orig_net = MyReLUModel(self.settings, self.N, 'temp')
             
             try:
                 network_file = memory_dir + "/model.h5"
@@ -276,8 +277,8 @@ class Network:
 
             if not good:
                 # Failed to load. Re-Create
-                self._model = MyModel(self.settings, self.N, 'model')
-                self.frozen_model = MyModel(self.settings, self.N, 'frozen')
+                self._model = MyReLUModel(self.settings, self.N, 'model')
+                self.frozen_model = MyReLUModel(self.settings, self.N, 'frozen')
                 self.freeze()
             else:
                 self.freeze()
