@@ -28,7 +28,8 @@ from tensorflow.keras import backend as K
 from tensorflow.python.keras.backend import count_params, set_session
 
 from .utilities import Utility
-from .network_model import MyReLUModel, NetworkInputs, NetworkOutputs
+from .network_model import NetworkInputs, NetworkOutputs
+from .network_model_relu import MyReLUModel
 
 
 
