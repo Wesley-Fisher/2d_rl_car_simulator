@@ -314,40 +314,6 @@ class TestNetworkIntegration(unittest.TestCase):
             vF_last = vF
 
 
-    def test_terminal_goal_learning(self):
-        settings = Settings()
-        settings.learning.alpha = 1e-3
-        settings.learning.gamma = 0.2
-        expGoal = copy.deepcopy(self.goal_exp_1)
-        net = self.get_network_copy()
-
-        ex = expGoal[0]
-        data, original = net.build_epoch_targets([ex])
-        net.fit_model(data * 200)
-
-        v0 = float(net.model(ex.s0).value)
-        v1 = float(net.model(ex.s1).value)
-        r = ex.r1
-        self.assertLess(v0, v1 + r)
-        return
-
-    def test_terminal_coll_learning(self):
-        settings = Settings()
-        settings.learning.alpha = 1e-3
-        settings.learning.gamma = 0.2
-        expColl = copy.deepcopy(self.coll_exp_1)
-        net = self.get_network_copy()
-
-        ex = expColl[0]
-        data, original = net.build_epoch_targets([ex])
-        net.fit_model(data * 100)
-
-        v0 = float(net.model(ex.s0).value)
-        v1 = float(net.model(ex.s1).value)
-        r = ex.r1
-        self.assertLess(v0, v1 + r)
-        return
-
     def test_split_experience_learning(self):
         settings = Settings()
         settings.learning.alpha = 1e-3
