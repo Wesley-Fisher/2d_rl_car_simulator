@@ -48,6 +48,44 @@ class DirectControlAction:
         self.action = act_orig + noise[0]
         self.prob = Utility().normal_int_prob(act_orig, self.action, CONSTANTS.sigma)
 
+class DiscreteControlAction:
+    def __init__(self, scale, action = [0.25, 0.5, 0.25]):
+        self.action = action
+        self.scale = scale
+        self.ind_to_action = {0: -self.scale, 1: 0.0, 2: self.scale }
+    def get_random_elements(self):
+        return 3
+    def get_applied_action_ext(self):
+        i = self.get_action_index()
+        return self.ind_to_action[i]
+    def get_action_int(self):
+        ret = [0.0, 0.0, 0.0]
+        i = self.get_action_index()
+        ret[i] = 1.0
+        return ret
+    def get_prob(self):
+        i = self.get_action_index()
+        return self.action[i]
+    def apply_noise(self, noise):
+        tot = 0.0
+        #print(self.action)
+        for i in range(0, len(noise)):
+            self.action[i] = self.action[i] + noise[i]
+            tot = tot + self.action[i]
+        for i in range(0, len(self.action)):
+            self.action[i] = self.action[i] / tot
+    def get_prob_of_int_action(self, action):
+        i = action.index(max(action))
+        return self.action[i]
+    def get_action_index(self):
+        return self.action.index(max(self.action))
+    def apply_from_continuous(self, a):
+        if a > 1e-3:
+            self.action = [0.0, 0.0, 1.0]
+        elif a < -1e-3:
+            self.action = [1.0, 0.0, 0.0]
+        else:
+            self.action = [0.0, 1.0, 0.0]
 
 class CarControls:
     def __init__(self, force, angle):

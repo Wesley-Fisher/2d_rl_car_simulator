@@ -2,7 +2,7 @@ import keyboard
 import random
 import math
 
-from .car import CarControls, DirectControlAction
+from .car import CarControls, DirectControlAction, DiscreteControlAction
 from .utilities import Utility
 
 class ControllerTypes:
@@ -45,7 +45,15 @@ class KeyboardController(Controller):
         r = keyboard.is_pressed('d')
         angle = float(r - l) * self.settings.keyboard.angle
 
-        return CarControls(DirectControlAction(force, self.stat_p), DirectControlAction(angle, self.stat_a))
+        #act_force = DirectControlAction(force, self.stat_p)
+        #act_angle = DirectControlAction(angle, self.stat_a)
+        
+        act_force = DiscreteControlAction(self.settings.keyboard.force)
+        act_force.apply_from_continuous(force)
+        act_angle = DiscreteControlAction(self.settings.keyboard.angle)
+        act_angle.apply_from_continuous(angle)
+        
+        return CarControls(act_force, act_angle)
 
 class NetworkController(Controller):
     def __init__(self, settings, network):
@@ -79,7 +87,14 @@ class HardCodedController(Controller):
 
     def get_controls(self, state):
         # Hardcoded has 100% probability of taking this action
-        return CarControls(DirectControlAction(self.f, 1.0), DirectControlAction(self.a, 0.1))
+        #act_force = DirectControlAction(force, self.stat_p)
+        #act_angle = DirectControlAction(angle, self.stat_a)
+        
+        act_force = DiscreteControlAction(self.settings.keyboard.force)
+        act_force.apply_from_continuous(self.f)
+        act_angle = DiscreteControlAction(self.settings.keyboard.angle)
+        act_angle.apply_from_continuous(self.a)
+        return CarControls(act_force, act_angle)
 
 class RandomController(Controller):
     def __init__(self, settings, force_bias_range=2, force_step=0.5, angle_bias_range=0.5, angle_step=0.1):
@@ -101,7 +116,15 @@ class RandomController(Controller):
         self.a = self.a + random.gauss(0, self.angle_step * self.settings.physics.control_timestep)
         self.f = self.f + random.gauss(0, self.force_step * self.settings.physics.control_timestep)
         # Stick to default probability for now
-        return CarControls(DirectControlAction(self.f, self.stat_p), DirectControlAction(self.a, self.stat_p))
+
+        #act_force = DirectControlAction(self.f, self.stat_p)
+        #act_angle = DirectControlAction(self.a, self.stat_p)
+        
+        act_force = DiscreteControlAction(self.settings.keyboard.force)
+        act_force.apply_from_continuous(self.f)
+        act_angle = DiscreteControlAction(self.settings.keyboard.angle)
+        act_angle.apply_from_continuous(self.a)
+        return CarControls(act_force, act_angle)
 
 class FeedbackController(Controller):
     def __init__(self, settings):
@@ -120,7 +143,15 @@ class FeedbackController(Controller):
         if abs(d_head) > 2 * dist:
             force = -0.5
             angle = 0.0
-            return CarControls(DirectControlAction(force, 1.0), DirectControlAction(angle, 0.1))
+
+            #act_force = DirectControlAction(force, 1.0)
+            #act_angle = DirectControlAction(angle, 1.0)
+
+            act_force = DiscreteControlAction(self.settings.keyboard.force)
+            act_force.apply_from_continuous(force)
+            act_angle = DiscreteControlAction(self.settings.keyboard.angle)
+            act_angle.apply_from_continuous(angle)
+            return CarControls(act_force, act_angle)
 
         force = self.settings.feedback_car.force
         angle = self.settings.feedback_car.k * d_head
@@ -151,7 +182,14 @@ class FeedbackController(Controller):
             angle = dr - dl
             force = -2
 
-        return CarControls(DirectControlAction(force, 1.0), DirectControlAction(angle, 0.1))
+        #act_force = DirectControlAction(force, 1.0)
+        #act_angle = DirectControlAction(angle, 1.0)
+
+        act_force = DiscreteControlAction(self.settings.keyboard.force)
+        act_force.apply_from_continuous(force)
+        act_angle = DiscreteControlAction(self.settings.keyboard.angle)
+        act_angle.apply_from_continuous(angle)
+        return CarControls(act_force, act_angle)
 
 
 class ExplorationController(Controller):

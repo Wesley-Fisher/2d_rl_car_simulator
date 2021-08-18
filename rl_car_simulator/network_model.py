@@ -161,7 +161,7 @@ class MyModel:
         data = self.prepare_data_internal(data)
         with self.graph.as_default(), self.session.as_default():
             set_session(self.session)
-            self._model.fit(data, verbose=verbose, batch_size=batch_size)
+            test = self._model.fit(data, verbose=verbose, batch_size=batch_size)
 
     def make_dummy_data(self):
         NotImplementedError
