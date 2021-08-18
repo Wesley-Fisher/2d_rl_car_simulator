@@ -233,8 +233,12 @@ class MySoftmaxModel(MyModel):
                 adjustments = selected_act * advantage
                 return K.sum(adjustments)
 
-            force_loss = action_loss(force_used, force_out, ratio_f)
-            angle_loss = action_loss(angle_used, angle_out, ratio_a)
+            def entropy_loss(pred):
+                # Increases for every probability near 0.0 or 1.0
+                return K.sum(pred * K.log(pred)) * 1e-5
+
+            force_loss = action_loss(force_used, force_out, ratio_f) + entropy_loss(force_out)
+            angle_loss = action_loss(angle_used, angle_out, ratio_a) + entropy_loss(angle_out)
 
             # Not sure why angles tend to go off in one direction yet
             # try to limit for now
