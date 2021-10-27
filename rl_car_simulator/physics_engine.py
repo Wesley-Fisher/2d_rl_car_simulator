@@ -109,12 +109,16 @@ class PhysicsEngine:
         head = math.atan2(dy, dx)
         base_state = np.array([car.state.x, car.state.y,car.state.h,dist,head])
 
+        def scale_lidar(d):
+            d = min(d / 10.0, 1.0)
+            return d
+
         N = len(self.settings.car_properties.lidar_angles)
         lidar_state = np.zeros((N))
         for i in range(0, N):
             ang = self.settings.car_properties.lidar_angles[i]
             dist = self.calc_lidar_distance(car, ang)
-            lidar_state[i] = dist
+            lidar_state[i] = scale_lidar(dist)
         car.lidar_state = lidar_state
         return np.concatenate([base_state, lidar_state], axis=0)
 
