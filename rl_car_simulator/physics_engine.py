@@ -107,7 +107,7 @@ class PhysicsEngine:
         dy = car.goal[1] - car.state.y
         dist = math.sqrt(dx*dx + dy*dy)
         head = math.atan2(dy, dx)
-        base_state = np.array([car.state.x, car.state.y,car.state.h,dist,head])
+        base_state = np.array([car.state.x*0, car.state.y*0,car.state.h*0,dist,head])
 
         N = len(self.settings.car_properties.lidar_angles)
         lidar_state = np.zeros((N))

@@ -206,7 +206,9 @@ class MySoftmaxModel(MyModel):
             # Ratios: importance sampling ratios
 
             # Want critic to predict episode return
-            critic_loss = K.pow(return_value - value_out, 2)
+            square_loss = K.pow(return_value - value_out, 2)
+            linear_loss = K.abs(return_value - value_out)
+            critic_loss = (square_loss + linear_loss)
 
             def action_loss(act, pred, rat):
                 # Heavy Influence: https://www.tensorflow.org/tutorials/reinforcement_learning/actor_critic
@@ -230,22 +232,17 @@ class MySoftmaxModel(MyModel):
 
                 log_prob = -K.log(pred + 1e-6)
                 selected_act = act * log_prob
-                adjustments = selected_act * advantage
+                adjustments = selected_act * return_value # advantage
                 return K.sum(adjustments)
 
             def entropy_loss(pred):
                 # Increases for every probability near 0.0 or 1.0
                 return K.sum(pred * K.log(pred + 1e-6)) * 1e-3
 
-            force_loss = action_loss(force_used, force_out, ratio_f) + entropy_loss(force_out)
-            angle_loss = action_loss(angle_used, angle_out, ratio_a) + entropy_loss(angle_out)
+            force_loss = 1e-3*action_loss(force_used, force_out, ratio_f) + entropy_loss(force_out)
+            angle_loss = 1e-3*action_loss(angle_used, angle_out, ratio_a) + entropy_loss(angle_out)
 
-            # Not sure why angles tend to go off in one direction yet
-            # try to limit for now
-            large_angle_loss = K.square(angle_out)
-            neg_speed_loss = -force_out
-
-            return critic_loss + force_loss + angle_loss + large_angle_loss
+            return 1e1*critic_loss + force_loss + angle_loss
 
         self.optimizer = Adam(learning_rate=self.settings.learning.alpha, clipnorm=1.0)
         loss = actor_critic_loss(self.force_out,
