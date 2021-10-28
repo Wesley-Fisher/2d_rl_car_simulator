@@ -93,12 +93,15 @@ class PhysicsEngine:
 
     def get_null_car_state(self):
         car = Car()
+        '''
         base_state = np.array([car.state.x,
                                car.state.y,
                                car.state.h,
                                0.0, # Distance to goal
                                0.0, # Heading to goal])
                                 ])
+        '''
+        base_state = np.array([0.0, 0.0])
         lidar_state = np.zeros((len(self.settings.car_properties.lidar_angles)))
         return np.concatenate([base_state, lidar_state], axis=0)
     
@@ -107,7 +110,8 @@ class PhysicsEngine:
         dy = car.goal[1] - car.state.y
         dist = math.sqrt(dx*dx + dy*dy)
         head = math.atan2(dy, dx)
-        base_state = np.array([car.state.x, car.state.y,car.state.h,dist,head])
+        #base_state = np.array([car.state.x, car.state.y,car.state.h,dist,head])
+        base_state = np.array([dist,head])
 
         def scale_lidar(d):
             d = min(d / 10.0, 1.0)

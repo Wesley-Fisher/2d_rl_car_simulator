@@ -165,18 +165,24 @@ class MyImitationModel(MyModel):
         # LOSS AND OPTIMIZATION
 
         def actor_critic_loss(force_out, angle_out, force_used, angle_used):
-            def action_loss(act, pred):
+            def action_loss(act, pred, a, b, c):
                 
                 # Get full difference
+                mat = K.variable([[a, 0.0, 0.0],[0.0, b, 0.0],[0.0, 0.0, c]])
                 diff = act - pred
 
                 # Get difference only of applied action
                 #diff = act - pred*act
 
-                return K.dot(diff, K.transpose(diff))
+                return K.dot(diff, K.dot(mat, K.transpose(diff)))
 
-            force_loss = action_loss(force_used, force_out)
-            angle_loss = action_loss(angle_used, angle_out)
+            turn_scale = 1000.0
+            straight_scale = 1.0
+            for_scale = 1.0
+            still_scale = 100.0
+            back_scale = 100.0
+            force_loss = action_loss(force_used, force_out, turn_scale, straight_scale, turn_scale)
+            angle_loss = action_loss(angle_used, angle_out, back_scale, still_scale, for_scale)
 
             return force_loss + angle_loss
 
