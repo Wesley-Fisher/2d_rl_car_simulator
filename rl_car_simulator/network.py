@@ -25,7 +25,7 @@ from tensorflow.keras import initializers
 from tensorflow.keras.optimizers import Adam, SGD
 from tensorflow.python.ops.gen_math_ops import is_nan 
 from tensorflow.keras import backend as K
-from tensorflow.python.keras.backend import count_params, set_session
+from tensorflow.python.keras.backend import count_params, set_session, switch
 
 from .utilities import Utility
 from .network_model import NetworkInputs, NetworkOutputs
@@ -57,8 +57,12 @@ WIDTH = Utility().normal_int_width(SIG)
 GAUSS_FRAC = 1.0 / (SIG * math.sqrt(2*math.pi))
 
 def get_model(settings, N, name):
-    #return MyReLUModel(settings, N, name)
-    return MySoftmaxModel(settings, N, name)
+    if settings.network.type == settings.network.ac_cont:
+        return MyReLUModel(settings, N, name)
+    if settings.network.type == settings.network.ac_disc:
+        return MySoftmaxModel(settings, N, name)
+    
+    raise KeyError('Unidentified network type %s out of %f' % (settings.network.type, str(settings.network.types)))
 
 class Network:
     def __init__(self, settings, N):

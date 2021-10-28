@@ -298,14 +298,22 @@ class Debug:
         return config
 
 class Network:
+    ac_cont = "actor_critic_continuous"
+    ac_disc = "actor_critic_discrete"
     def __init__(self, config):
         self.W = float(config.get("W", 0.5))
         self.D = int(config.get("D", 2))
+ 
+        self.type = config.get("type", self.ac_cont)
+        self.types = [self.ac_cont, self.ac_disc]
+        if self.type not in self.types:
+            self.type = self.ac_cont
 
     def write(self):
         config = {}
         config["W"] = self.W
         config["D"] = self.D
+        config["type"] = self.type
         return config
 
 class Files:
