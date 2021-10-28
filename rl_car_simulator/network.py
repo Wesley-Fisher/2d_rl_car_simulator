@@ -186,7 +186,7 @@ class Network:
             sRet = "ret(%f)" % (ret[0])
             sAdv = "adv(%f)" % (adv[0])
             sNew = "new(%s,%s,%f)" % (str(newP.force.action), str(newP.angle.action), newP.value)
-            print("%s->%s->%s->%s" % (sOrig, sRet, sAdv, sNew))
+            #print("%s->%s->%s->%s" % (sOrig, sRet, sAdv, sNew))
 
         sample_results= []
         for orig, newP in zip(original, new):

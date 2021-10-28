@@ -42,6 +42,9 @@ class ImitationNetworkInputs(NetworkInputs):
         self.force = None
         self.angle = None
 
+        self.ret = [0.0]
+        self.advantage = [0.0]
+
 class ImitationNetworkAction(DiscreteControlAction):
     def __init__(self, scale):
         self.action = [0.23, 0.5, 0.25]
@@ -161,15 +164,7 @@ class MyImitationModel(MyModel):
     def compile(self):
         # LOSS AND OPTIMIZATION
 
-        def actor_critic_loss(force_out, angle_out, value_out, force_used, angle_used, return_value, advantage, ratio_f, ratio_a):
-            # Output: network output: force, angle, value
-            # Pred: predicted target: used force, use angle, episode return
-            # Advantage: advantage: ex.r1 + gamma * pred(v1) - pred(v0)
-            # Ratios: importance sampling ratios
-
-            # Want critic to predict episode return
-            critic_loss = K.pow(return_value - value_out, 2)
-
+        def actor_critic_loss(force_out, angle_out, force_used, angle_used):
             def action_loss(act, pred):
                 
                 # Get full difference
@@ -178,7 +173,7 @@ class MyImitationModel(MyModel):
                 # Get difference only of applied action
                 #diff = act - pred*act
 
-                return K.dot(diff, diff)
+                return K.dot(diff, K.transpose(diff))
 
             force_loss = action_loss(force_used, force_out)
             angle_loss = action_loss(angle_used, angle_out)
@@ -206,7 +201,7 @@ class MyImitationModel(MyModel):
             set_session(self.session)
             out = self._model.predict(data)
             output = NetworkOutputs()
-            output.value = out[2][0]
+            output.value = 0.0
 
             force = ImitationNetworkAction(self.settings.keyboard.force)
             force.action = out[0][0].tolist()
@@ -238,6 +233,11 @@ class MyImitationModel(MyModel):
             inputs.state = s0
             inputs.force = ex.action_force.get_action_int()
             inputs.angle = ex.action_angle.get_action_int()
+
+            pred_data = self.make_dummy_data()
+            pred_data.state = s0
+            pred0 = self.predict([pred_data])
+            original.append(pred0) 
 
             data.append(inputs)
 
