@@ -300,12 +300,13 @@ class Debug:
 class Network:
     ac_cont = "actor_critic_continuous"
     ac_disc = "actor_critic_discrete"
+    imitation = "imitation"
     def __init__(self, config):
         self.W = float(config.get("W", 0.5))
         self.D = int(config.get("D", 2))
  
         self.type = config.get("type", self.ac_cont)
-        self.types = [self.ac_cont, self.ac_disc]
+        self.types = [self.ac_cont, self.ac_disc, self.imitation]
         if self.type not in self.types:
             self.type = self.ac_cont
 

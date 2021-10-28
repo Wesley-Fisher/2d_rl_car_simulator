@@ -2,6 +2,7 @@ from copy import Error
 import math
 
 from numpy.core.fromnumeric import clip
+from rl_car_simulator.network_model_imitation import MyImitationModel
 from rl_car_simulator.settings import CONSTANTS
 from rl_car_simulator.utilities import Utility
 import numpy as np
@@ -61,8 +62,10 @@ def get_model(settings, N, name):
         return MyReLUModel(settings, N, name)
     if settings.network.type == settings.network.ac_disc:
         return MySoftmaxModel(settings, N, name)
+    if settings.network.type == settings.network.imitation:
+        return MyImitationModel(settings, N, name)
     
-    raise KeyError('Unidentified network type %s out of %f' % (settings.network.type, str(settings.network.types)))
+    raise KeyError('Unidentified network type %s out of %s' % (settings.network.type, str(settings.network.types)))
 
 class Network:
     def __init__(self, settings, N):
